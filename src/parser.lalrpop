@@ -1,0 +1,156 @@
+use std::str::FromStr;
+
+use crate::ast::*;
+
+grammar;
+
+
+pub Num: usize = {
+    r"[0-9]+" => usize::from_str(<>).unwrap(),
+};
+
+Factor: Box<Node> = {
+    Factor FactorOp Term => Box::new(Node::Op(<>)),
+    Term,
+};
+
+pub Term: Box<Node> = {
+    Num => Box::new(Node::Number(<>)),
+    Id => Box::new(Node::ID(<>)),
+    "(" <BoolExp> ")",
+    FunctionCall,
+    "true" => Box::new(Node::Boolean(<>.to_string())),
+    "false" => Box::new(Node::Boolean(<>.to_string())),
+};
+
+pub Id: String = {
+    r"([a-z]|[A-Z])([a-z]|[A-Z]|[0-9]|_)*" => String::from_str(<>).unwrap(),
+};
+
+Op: char = {
+    r"[+]|[-]" => char::from_str(<>).unwrap(),
+};
+
+pub Expr: Box<Node> = {
+    Expr ExprOp Factor => Box::new(Node::Op(<>)),
+    Factor,
+};
+
+pub ExprOp: Opcode = {
+    "+" => Opcode::Add,
+    "-" => Opcode::Sub,
+};
+
+FactorOp: Opcode = {
+    "*" => Opcode::Mul,
+    "/" => Opcode::Div,
+    "%" => Opcode::Mod,
+};
+
+pub Comparison: Box<Node> = {
+    Comparison CompareOp Expr => Box::new(Node::Op(<>)),
+    Expr,
+};
+
+pub BoolExp: Box<Node> = {
+    BoolExp BooleanOp Comparison => Box::new(Node::Op(<>)),
+    Comparison,
+    //FunctionCall,
+};
+
+
+
+CompareOp: Opcode = {
+    "<" => Opcode::Less,
+    ">" => Opcode::Greater,
+    "<=" => Opcode::LessOrEq,
+    ">=" => Opcode::GreaterorEq,
+    "==" => Opcode::Equals,
+    "!=" => Opcode::Neq,
+};
+
+BooleanOp: Opcode = {
+    "&&" => Opcode::And,
+    "||" => Opcode::Or,
+};
+
+pub Stmt: Box<Node> = {
+    "let"? "mut"? <name:Id> <t:TypeSpec?> "=" <value:BoolExp> => Box::new(Node::Assign(name, value, t)),
+};
+
+pub Declaration: Box<Node> = {
+    "let" "mut"? <name:Id> <t:TypeSpec?> => Box::new(Node::Declaration(name, t)),
+};
+
+Comma<T>: Vec<T> = { 
+    <v:(<T> ",")*> <e:T?> => match e { 
+        None => v,
+        Some(e) => {
+            let mut v = v;
+            v.push(e);
+            v
+        }
+    }
+};
+
+SemiColon<T>: Vec<T> = {
+    <v:(<T> ";")*> <e:T?> => match e { 
+        None => v,
+        Some(e) => {
+            let mut v = v;
+            v.push(e);
+            v
+        }
+    }
+
+};
+
+pub FunctionCall: Box<Node> = {
+    <name:Id> "(" <args:Arguments> ")" => Box::new(Node::Call(name, args)),
+};
+
+pub If: Box<Node> = {
+    "if" <cond:BoolExp> "{" <body:Body> "}" => Box::new(Node::IfStmt(cond, body)),
+};
+
+pub IfElse: Box<Node> = {
+    "if" <cond:BoolExp> "{" <body:Body> "}" "else" "{" <ebody:Body> "}" => Box::new(Node::IfElse(cond, body, ebody)),
+};
+
+pub While: Box<Node> = {
+    "while" <cond:BoolExp> "{" <body:Body> "}" => Box::new(Node::While(cond, body)),
+};
+
+Instruction: Box<Node> = {
+    BoolExp,
+    Declaration,
+    Stmt,
+    If,
+    IfElse,
+    While,
+    Return,
+};
+
+pub TypeSpec: String = {
+    ":" <name:Id> => String::from_str(&name).unwrap(),
+};
+
+pub Function: Box<Node> = {
+    "fn" <funcname:Id> "(" <p:Params> ")" <t:("->" <Id>)?> "{" <body:Body> "}" =>
+    Box::new(Node::FnDef(funcname, p, t, body)),
+
+};
+
+pub Return: Box<Node> = {
+    "return" <ret:BoolExp?> => Box::new(Node::Return(ret)),
+};
+
+ParamDef: Box<Node> = {
+    <name:Id> <t:TypeSpec> => Box::new(Node::ParamDef(name, t)),
+};
+
+Params = Comma<ParamDef>;
+
+Arguments = Comma<Expr>;
+
+Body = SemiColon<Instruction>;
