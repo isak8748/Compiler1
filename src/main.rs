@@ -15,8 +15,8 @@ fn main() {
     println!("{}", ExprParser::new().parse("5+6*7").unwrap());
     println!("{}", ExprParser::new().parse("22 * 44 + 66").unwrap());
     println!("{}", ExprParser::new().parse("22 + 44 * 66").unwrap());
-    println!("{}", StmtParser::new().parse("let x = 7").unwrap());
-    println!("{:?}", StmtParser::new().parse("let num = 567/14+56-14",).unwrap());
+    println!("{}", StmtParser::new().parse("x = 7").unwrap());
+    println!("{:?}", StmtParser::new().parse("num = 567/14+56-14",).unwrap());
     test_parse();
     test_types();
 
@@ -31,7 +31,8 @@ fn test_parse() {
     assert!(TermParser::new().parse("(123)").is_ok());
     assert!(ExprParser::new().parse("22 * 44+66").is_ok());
     assert!(ExprParser::new().parse("((13*(51)))+561*((13)+567)/(asdf)").is_ok());
-    assert!(StmtParser::new().parse("let x = 5").is_ok());
+    assert!(StmtParser::new().parse("x = 5").is_ok());
+    assert!(DeclarationParser::new().parse("let y = 4").is_ok());
     assert!(FunctionCallParser::new().parse("fib(56, 12, roger)").is_ok());
     assert!(FunctionCallParser::new().parse("fib(56, 12, roger, 45+18,)").is_ok());
     assert!(IfParser::new().parse("if x + 5 { fib(56,); let y = 4}").is_ok());
@@ -39,6 +40,7 @@ fn test_parse() {
     assert!(IfElseParser::new().parse("if bool { fib(56, rususu); let y = 3;} else {let y = 456; foo(123, 132, 555);}").is_ok());
     assert!(WhileParser::new().parse("while false { print(123, rogerd); let x = 17; }").is_ok());
     assert!(WhileParser::new().parse("while true { let x = 5; if(true) {let x = 6;} else {let y = 7; if(x +5){ x = 7}}}").is_ok());
+    assert!(WhileParser::new().parse("while true {}").is_ok());
     assert!(ComparisonParser::new().parse("x+123/14 <= y-15").is_ok());
     assert!(ComparisonParser::new().parse("boolname").is_ok());
     assert!(BoolExpParser::new().parse("x == 5 && y < 17 || z <= x").is_ok());
@@ -50,7 +52,7 @@ fn test_parse() {
     assert!(ReturnParser::new().parse("return x % 5").is_ok());
     assert!(ReturnParser::new().parse("return parre(x, y, true)").is_ok());
     //assert!(BoolExpParser::new().parse("-x").is_ok());
-    assert!(StmtParser::new().parse("let a: i32 = true ").is_ok());
+    assert!(StmtParser::new().parse("a = true ").is_ok());
     assert!(BoolExpParser::new().parse("y || a").is_ok());
     assert!(IfElseParser::new().parse("if x && y {
         let a: bool = true;
@@ -69,6 +71,7 @@ fn test_parse() {
     assert!(BoolExpParser::new().parse("true && false").is_ok());
     println!("{:?}", BoolExpParser::new().parse("true && false").unwrap());
     println!("{:?}", BoolExpParser::new().parse("D == false && 14 < 17 || A <= B").unwrap());
+    println!("{:?}", DeclarationParser::new().parse("let x: i32 = fib(13, 5)").unwrap());
     
   }
 
@@ -97,4 +100,19 @@ fn test_parse() {
     assert!(type_check_op(&n1, &Opcode::And, &n2, &c).is_err());
     assert!(type_check(&BoolExpParser::new().parse("D == false && 14 < 17 || A >= B").unwrap(), &c).is_ok());
     assert_eq!(bool_op(), false);
+    assert!(type_check(&DeclarationParser::new().parse("let x").unwrap(), &c).is_ok());
+    assert!(type_check(&DeclarationParser::new().parse("let asd: i32").unwrap(), &c).is_ok());
+    assert!(type_check(&DeclarationParser::new().parse("let y = 17").unwrap(), &c).is_ok());
+    assert!(type_check(&DeclarationParser::new().parse("let x: bool = true").unwrap(), &c).is_ok());
+    assert!(type_check(&DeclarationParser::new().parse("let mut x: i32 = 34 + A").unwrap(), &c).is_ok());
+    assert!(type_check(&StmtParser::new().parse("A = 5").unwrap(), &c).is_ok());
+    assert!(type_check(&StmtParser::new().parse("A = true").unwrap(), &c).is_err());
+    assert!(type_check(&StmtParser::new().parse("D = false").unwrap(), &c).is_ok());
+    assert!(type_check(&StmtParser::new().parse("A = A % 123 + 45 * 3").unwrap(), &c).is_ok());
+    assert!(type_check(&WhileParser::new().parse("while true {let x = 5}").unwrap(), &c).is_ok());
+    assert!(type_check(&WhileParser::new().parse("while D && 13 <= A || 456 != B {let x = 5}").unwrap(), &c).is_ok());
+    assert!(type_check(&WhileParser::new().parse("while A % 4 + true {let x = 5}").unwrap(), &c).is_err());
+    assert!(type_check(&WhileParser::new().parse("while A % 4 * 32 {let x = 5}").unwrap(), &c).is_err());
+
+
   }

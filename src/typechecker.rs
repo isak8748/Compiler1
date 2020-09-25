@@ -108,6 +108,91 @@ pub fn type_check_op(node1: &Node, operation: &Opcode, node2: &Node, context: &C
     }
 }
 
+pub fn type_check_let(typedef: &Option<String>, value: &Option<Box<Node>>, context: &Context) -> Result<Types, &'static str>{
+    //A type can be specified
+    let left = match typedef {
+        Some(s) => match s as &str {
+            "i32" => Types::Number,
+            "bool" => Types::Boolean,
+            _ => panic!("unrecognized type"),
+        },
+        _ => Types::Unknown,
+    };
+
+    //Check the type of the value assigned
+    let right = match value {
+        Some(n) => type_check(n, context),
+        _ => Err("no type"),
+    };
+
+    //Check if the value assigned had a valid type
+    if right.is_ok(){
+        //If no type was specified on the left side
+        if left.get_type_id() == 0{
+            return right;
+        }
+        //If both sides match
+        else if left.get_type_id() == right.unwrap().get_type_id() {
+            return right;
+        }
+        else{
+            return Err("unmatched types");
+        }
+
+    }
+
+    //if no value was assigned at all
+    if value.is_none(){
+        return Ok(left);
+    }
+
+    //Otherwise we know the expression was invalid
+    if right.is_err(){
+        return Err("Invalid Expression");
+    }
+
+    panic!("This line should be unreachable");
+}
+
+pub fn type_check_assign(name: &String, value: &Node, context: &Context) -> Result<Types, &'static str>{
+    let left = context.var_env.get(name).unwrap();
+    if !left.mutable {
+        return Err("Tried assigning a value to a nonmutable variable");
+    }
+
+    let right = type_check(value, context);
+    if right.is_err() {
+        return Err("Invalid expression");
+    }
+
+    if left.t.get_type_id() != right.unwrap().get_type_id(){
+        return Err("Mismatched types");
+    }
+    return right;
+}
+
+pub fn type_check_while(condition: &Node, context: &Context) -> Result<Types, &'static str>{
+    let condition_type = type_check(condition, context);
+    if condition_type.is_err(){
+        return Err("invalid expression");
+    }
+    if condition_type.unwrap().get_type_id() == 1 {
+        return Ok(Types::UnitType);
+    }
+    return Err("While condition did not evaluate to a boolean");
+}
+
+pub fn type_check_if(condition: &Node, context: &Context) ->  Result<Types, &'static str> {
+    let condition_type = type_check(condition, context);
+    if condition_type.is_err(){
+        return Err("invalid expression");
+    }
+    if condition_type.unwrap().get_type_id() == 1 {
+        return Ok(Types::UnitType);
+    }
+    return Err("While condition did not evaluate to a boolean"); 
+}
+
 #[allow(dead_code)]
 #[allow(unused_variables)]
 pub fn type_check(node: &Node, context: &Context) -> Result<Types, &'static str> {
@@ -116,7 +201,12 @@ pub fn type_check(node: &Node, context: &Context) -> Result<Types, &'static str>
         Node::Boolean(_b) => Ok(Types::Boolean),
         Node::Op(l, o, r) => type_check_op(l, o, r, context),
         Node::ID(s) => Ok(context.var_env.get(s).unwrap().t),
+        Node::Declaration(_name, _b, typedef, value) 
+        => type_check_let(typedef, value, context),
+        Node::Assign(s, n) => type_check_assign(s, n, context),
+        Node::While(n, v) => type_check_while(n, context),
+        Node::IfStmt(n, v) => type_check_if(n, context),
         _ => Err("unknown type"),
-    };
+        };
     return ret;
 }

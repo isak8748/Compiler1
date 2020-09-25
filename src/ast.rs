@@ -8,14 +8,10 @@ pub enum Node {
     Type(String),
     //+, -, *, /, %
     Op(Box<Node>, Opcode, Box<Node>),
-    //Comparison operators
-    Comparison(Box<Node>, Opcode, Box<Node>),
-    //Boolean operators
-    BoolExp(Box<Node>, Opcode, Box<Node>),
     //Function call
     Call(String, Vec<Box<Node>>),
     //Value assigned to a variable
-    Assign(String, Box<Node>, Option<String>),
+    Assign(String, Box<Node>),
     IfStmt(Box<Node>, Vec<Box<Node>>),
     IfElse(Box<Node>, Vec<Box<Node>>, Vec<Box<Node>>),
     While(Box<Node>, Vec<Box<Node>>),
@@ -24,7 +20,7 @@ pub enum Node {
     //Definition of parameters in function definition
     ParamDef(String, String),
     //Variable declaration without value
-    Declaration(String, Option<String>),
+    Declaration(String, bool, Option<String>, Option<Box<Node>>),
     //Return
     Return(Option<Box<Node>>),
     Boolean(String),
@@ -75,7 +71,7 @@ impl fmt::Display for Node {
             Node::Number(i) => write!(f, "{}", i)?,
             Node::ID(s) => write!(f, "{}", s)?,
             Node::Op(a, b, c) => write!(f, "({} {} {})", format!("{}", a), format!("{}", b), format!("{}", c))?,
-            Node::Assign(a, b, _t) => write!(f, "let {} = {};", format!("{}", a), format!("{}", b))?,
+            Node::Assign(a, b) => write!(f, "let {} = {};", format!("{}", a), format!("{}", b))?,
             //Expr::Call(s, v, o) => write!(f, "{}({})", format!("{}", s), format!("{}", v))?,
             //Expr::Call(s, v, o) => write!(f, "ok"),
             _ => panic!("error"),

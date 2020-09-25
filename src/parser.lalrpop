@@ -75,11 +75,12 @@ BooleanOp: Opcode = {
 };
 
 pub Stmt: Box<Node> = {
-    "let"? "mut"? <name:Id> <t:TypeSpec?> "=" <value:BoolExp> => Box::new(Node::Assign(name, value, t)),
+    <name:Id> "=" <value:BoolExp> => Box::new(Node::Assign(name, value)),
 };
 
 pub Declaration: Box<Node> = {
-    "let" "mut"? <name:Id> <t:TypeSpec?> => Box::new(Node::Declaration(name, t)),
+    "let" "mut" <name:Id> <t:TypeSpec?> <v:("=" <BoolExp>)?> => Box::new(Node::Declaration(name, true, t, v)),
+    "let" <name:Id> <t:TypeSpec?> <v:("=" <BoolExp>)?> => Box::new(Node::Declaration(name, false, t, v)),
 };
 
 Comma<T>: Vec<T> = { 
@@ -118,7 +119,7 @@ pub IfElse: Box<Node> = {
 };
 
 pub While: Box<Node> = {
-    "while" <cond:BoolExp> "{" <body:Body> "}" => Box::new(Node::While(cond, body)),
+    "while" <cond:BoolExp> "{" <body:Body>  "}" => Box::new(Node::While(cond, body)),
 };
 
 Instruction: Box<Node> = {
