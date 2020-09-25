@@ -99,7 +99,8 @@ SemiColon<T>: Vec<T> = {
         None => v,
         Some(e) => {
             let mut v = v;
-            v.push(e);
+            //If the final statement in a block does not have a semicolon this will be the value of the block
+            v.push(Box::new(Node::BlockValue(e)));
             v
         }
     }

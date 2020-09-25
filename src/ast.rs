@@ -1,6 +1,6 @@
 use std::fmt;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Node {
     Number(usize),
     ID(String),
@@ -24,9 +24,10 @@ pub enum Node {
     //Return
     Return(Option<Box<Node>>),
     Boolean(String),
+    BlockValue(Box<Node>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Opcode {
     Add, 
     Sub,

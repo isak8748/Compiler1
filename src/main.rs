@@ -23,6 +23,7 @@ fn main() {
     
 }
 
+
 fn test_parse() {
     assert!(NumParser::new().parse("1").is_ok());
     assert!(NumParser::new().parse("1").unwrap() == 1);
@@ -35,7 +36,7 @@ fn test_parse() {
     assert!(DeclarationParser::new().parse("let y = 4").is_ok());
     assert!(FunctionCallParser::new().parse("fib(56, 12, roger)").is_ok());
     assert!(FunctionCallParser::new().parse("fib(56, 12, roger, 45+18,)").is_ok());
-    assert!(IfParser::new().parse("if x + 5 { fib(56,); let y = 4}").is_ok());
+    assert!(IfParser::new().parse("if x + 5 { fib(56,); let y = 4;}").is_ok());
     assert!(IfParser::new().parse("if x + 5 { fib(56,); y = 4;}").is_ok());
     assert!(IfElseParser::new().parse("if bool { fib(56, rususu); let y = 3;} else {let y = 456; foo(123, 132, 555);}").is_ok());
     assert!(WhileParser::new().parse("while false { print(123, rogerd); let x = 17; }").is_ok());
@@ -72,6 +73,7 @@ fn test_parse() {
     println!("{:?}", BoolExpParser::new().parse("true && false").unwrap());
     println!("{:?}", BoolExpParser::new().parse("D == false && 14 < 17 || A <= B").unwrap());
     println!("{:?}", DeclarationParser::new().parse("let x: i32 = fib(13, 5)").unwrap());
+    println!("{:?}", IfParser::new().parse("if x {let a = 5; let b = 3; a + 5}").unwrap());
     
   }
 
