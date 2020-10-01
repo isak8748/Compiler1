@@ -7,6 +7,7 @@ use crate::ast::Opcode;
 
 #[derive(Clone)]
 #[derive(Copy)]
+#[derive(Debug)]
 pub enum Types{
     Boolean,
     Number,
@@ -182,16 +183,108 @@ pub fn type_check_while(condition: &Node, context: &Context) -> Result<Types, &'
     return Err("While condition did not evaluate to a boolean");
 }
 
-pub fn type_check_if(condition: &Node, context: &Context) ->  Result<Types, &'static str> {
+pub fn type_check_if(condition: &Node, instr: &Vec<Box<Node>>, context: &Context) ->  Result<Types, &'static str> {
     let condition_type = type_check(condition, context);
     if condition_type.is_err(){
         return Err("invalid expression");
     }
     if condition_type.unwrap().get_type_id() == 1 {
-        return Ok(Types::UnitType);
+        if instr.len() == 0{
+            return Ok(Types::UnitType);
+        }
+        let ret_type = match &*instr[instr.len()-1]{
+            Node::BlockValue(expr) => type_check(&expr, context),
+            _ => Ok(Types::UnitType),
+
+        };
+        return ret_type;
     }
     return Err("While condition did not evaluate to a boolean"); 
 }
+
+pub fn type_check_if_else(condition: &Node, if_instr: &Vec<Box<Node>>, else_instr: &Vec<Box<Node>>, context: &Context)
+->  Result<Types, &'static str>{
+    let condition_type = type_check(condition, context);
+    if condition_type.is_err(){
+        return Err("invalid expression");
+    }
+    if condition_type.unwrap().get_type_id() == 1 {
+       let mut if_type: Types = Types::UnitType;
+       let mut else_type: Types = Types::UnitType;
+       if if_instr.len() > 0 {
+            if_type = match &*if_instr[if_instr.len()-1]{
+                Node::BlockValue(expr) => type_check(&expr, context).unwrap(),
+                _ => Types::UnitType,
+
+            };
+
+        }
+
+        if else_instr.len() > 0{
+            else_type = match &*else_instr[else_instr.len()-1]{
+                Node::BlockValue(expr) => type_check(&expr, context).unwrap(),
+                _ => Types::UnitType,
+            };
+
+        }
+
+        if if_type.get_type_id() == else_type.get_type_id(){
+            return Ok(if_type);
+        }
+        
+        else{
+            return Err("if and else statement return differing types");
+        }
+       
+    }
+    return Err("While condition did not evaluate to a boolean");
+}
+
+pub fn type_check_return(node: &Option<Box<Node>>, context: &Context) -> Result<Types, &'static str>{
+    let ret = match node {
+        Some(b) => type_check(&b, context),
+        None => Ok(Types::UnitType),
+    };
+
+    return ret;
+}
+
+pub fn type_check_unary_op(node: &Node, operation: &Opcode, context: &Context) -> Result<Types, &'static str> {
+    let op_type = match operation {
+        Opcode::UnarySub => Types::Number,
+        Opcode::Not => Types::Boolean,
+        Opcode::Ref => Types::Unknown,
+        Opcode::DeRef => Types::Unknown,
+        _=> panic!("Unrecognized unary op"),
+    };
+    //Unary -, expression needs to be a number
+    if op_type.get_type_id() == 2 {
+        let expr_type = type_check(node, context);
+        if expr_type.is_err(){
+            return Err("invalid expression");
+        }
+        if expr_type.unwrap().get_type_id() != 2 {
+            return Err("Unary - can only be used on numbers");
+        }
+        return Ok(Types::Number);
+    }
+
+    //Unary !, expression needs to be a boolean
+    if op_type.get_type_id() == 1 {
+        let expr_type = type_check(node, context);
+        if expr_type.is_err(){
+            return Err("invalid expression");
+        }
+        if expr_type.unwrap().get_type_id() != 1 {
+            return Err("Unary ! can only be used on booleans");
+        }
+        return Ok(Types::Boolean);
+    }
+
+    return Err("lasd");
+}
+
+
 
 #[allow(dead_code)]
 #[allow(unused_variables)]
@@ -205,7 +298,10 @@ pub fn type_check(node: &Node, context: &Context) -> Result<Types, &'static str>
         => type_check_let(typedef, value, context),
         Node::Assign(s, n) => type_check_assign(s, n, context),
         Node::While(n, v) => type_check_while(n, context),
-        Node::IfStmt(n, v) => type_check_if(n, context),
+        Node::IfStmt(n, v) => type_check_if(n, v, context),
+        Node::IfElse(n, v1, v2) => type_check_if_else(n, v1, v2, context),
+        Node::Return(o) => type_check_return(o, context),
+        Node::UnaryOp(op, exp) => type_check_unary_op(exp, op, context),
         _ => Err("unknown type"),
         };
     return ret;

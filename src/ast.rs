@@ -8,6 +8,8 @@ pub enum Node {
     Type(String),
     //+, -, *, /, %
     Op(Box<Node>, Opcode, Box<Node>),
+    //unary op
+    UnaryOp(Opcode, Box<Node>),
     //Function call
     Call(String, Vec<Box<Node>>),
     //Value assigned to a variable
@@ -19,11 +21,11 @@ pub enum Node {
     FnDef(String, Vec<Box<Node>>, Option<String>, Vec<Box<Node>>),
     //Definition of parameters in function definition
     ParamDef(String, String),
-    //Variable declaration without value
+    //Variable declaration with optional type spec and value
     Declaration(String, bool, Option<String>, Option<Box<Node>>),
     //Return
     Return(Option<Box<Node>>),
-    Boolean(String),
+    Boolean(bool),
     BlockValue(Box<Node>),
 }
 
@@ -43,6 +45,9 @@ pub enum Opcode {
     And,
     Or,
     Not,
+    UnarySub,
+    Ref,
+    DeRef,
 }
 
 impl fmt::Display for Opcode {

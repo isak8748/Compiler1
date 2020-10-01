@@ -19,8 +19,9 @@ pub Term: Box<Node> = {
     Id => Box::new(Node::ID(<>)),
     "(" <BoolExp> ")",
     FunctionCall,
-    "true" => Box::new(Node::Boolean(<>.to_string())),
-    "false" => Box::new(Node::Boolean(<>.to_string())),
+    UnaryOp Term => Box::new(Node::UnaryOp(<>)),
+    "true" => Box::new(Node::Boolean(true)),
+    "false" => Box::new(Node::Boolean(false)),
 };
 
 pub Id: String = {
@@ -55,7 +56,6 @@ pub Comparison: Box<Node> = {
 pub BoolExp: Box<Node> = {
     BoolExp BooleanOp Comparison => Box::new(Node::Op(<>)),
     Comparison,
-    //FunctionCall,
 };
 
 
@@ -74,13 +74,20 @@ BooleanOp: Opcode = {
     "||" => Opcode::Or,
 };
 
+UnaryOp: Opcode = {
+    "!" => Opcode::Not,
+    "-" => Opcode::UnarySub,
+    "&" => Opcode::Ref,
+    "*" => Opcode::DeRef,
+};
+
 pub Stmt: Box<Node> = {
-    <name:Id> "=" <value:BoolExp> => Box::new(Node::Assign(name, value)),
+    <name:Id> "=" <value:Instruction> => Box::new(Node::Assign(name, value)),
 };
 
 pub Declaration: Box<Node> = {
-    "let" "mut" <name:Id> <t:TypeSpec?> <v:("=" <BoolExp>)?> => Box::new(Node::Declaration(name, true, t, v)),
-    "let" <name:Id> <t:TypeSpec?> <v:("=" <BoolExp>)?> => Box::new(Node::Declaration(name, false, t, v)),
+    "let" "mut" <name:Id> <t:TypeSpec?> <v:("=" <Instruction>)?> => Box::new(Node::Declaration(name, true, t, v)),
+    "let" <name:Id> <t:TypeSpec?> <v:("=" <Instruction>)?> => Box::new(Node::Declaration(name, false, t, v)),
 };
 
 Comma<T>: Vec<T> = { 
