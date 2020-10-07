@@ -58,6 +58,82 @@ pub fn init_context() -> Context{
     c
 }
 
+pub fn type_check_fn_def(id: &String, params: &Vec<Box<Node>>, rtype: &Option<String>, 
+    instr: &Vec<Box<Node>>, context: &Context) 
+    -> Result<Types, &'static str> {
+        let mut ret_type = Types::Unknown;
+        if rtype.is_none() {
+            ret_type = Types::UnitType;
+        }
+        else{
+            ret_type = match &rtype.as_ref().unwrap() as &str{
+                "i32" => Types::Number,
+                "bool" => Types::Boolean,
+                "()" => Types::UnitType,
+                _ => panic!("invalid fn definition"),
+            };
+        }
+
+        let mut parameter_defs = vec![Types::Unknown; params.len()];
+        let mut i = 0;
+        for param in params{
+            parameter_defs[i] = type_check(param, context).unwrap();
+            i += 1;
+        }
+
+        let mut real_ret_type = Ok(Types::Unknown);
+        let mut j = 0;
+        for n in instr{
+            match &**n {
+                Node::Return(_o) => real_ret_type = type_check(n, context),
+                Node::BlockValue(_v) => real_ret_type = type_check(n, context),
+                Node::IfElse(_a, _b, _c) => if j == instr.len()-1 {
+                    real_ret_type = type_check(n, context);
+                },
+                _ => (),
+            };
+            j += 1;
+        }
+
+        j = 0;
+        for n in instr{
+            let e = type_check(n, context);
+            if e.is_err() {
+                return e;
+            }
+            match &**n {
+                Node::Return(_o) => if e.unwrap().get_type_id() != real_ret_type.unwrap().get_type_id(){
+                    return Err("Function tries to return different types");
+                },
+                Node::BlockValue(_v) => if e.unwrap().get_type_id() != real_ret_type.unwrap().get_type_id(){
+                    return Err("Function tries to return different types");
+                },
+                Node::IfElse(_a, _b, _c) => if j == instr.len()-1 {
+                    if e.unwrap().get_type_id() != real_ret_type.unwrap().get_type_id(){
+                        return Err("Function tries to return different types");
+                    }
+                },
+                _ => (),
+            };
+            j += 1;
+        }
+        
+        if ret_type.get_type_id() == real_ret_type.unwrap().get_type_id(){
+            return Ok(ret_type);
+        }
+
+        return Err("asfasdf");
+}
+
+pub fn type_check_param_def(def: &String, context: &Context) -> Result<Types, &'static str> {
+    let ret_type = match def as &str{
+        ": i32" => Types::Number,
+        ": bool" => Types::Boolean,
+        _ => panic!("invalid param definition"),
+    };
+    return Ok(ret_type);
+}
+
 
 pub fn type_check_op(node1: &Node, operation: &Opcode, node2: &Node, context: &Context) -> Result<Types, &'static str> {
     let compare = match operation {
@@ -113,8 +189,8 @@ pub fn type_check_let(typedef: &Option<String>, value: &Option<Box<Node>>, conte
     //A type can be specified
     let left = match typedef {
         Some(s) => match s as &str {
-            "i32" => Types::Number,
-            "bool" => Types::Boolean,
+            ": i32" => Types::Number,
+            ": bool" => Types::Boolean,
             _ => panic!("unrecognized type"),
         },
         _ => Types::Unknown,
@@ -172,11 +248,19 @@ pub fn type_check_assign(name: &String, value: &Node, context: &Context) -> Resu
     return right;
 }
 
-pub fn type_check_while(condition: &Node, context: &Context) -> Result<Types, &'static str>{
+pub fn type_check_while(condition: &Node, instr: &Vec<Box<Node>>, context: &Context) -> Result<Types, &'static str>{
     let condition_type = type_check(condition, context);
     if condition_type.is_err(){
         return Err("invalid expression");
     }
+
+    for n in instr{
+        let e = type_check(n, context);
+        if e.is_err() {
+            return e;
+        }
+    }
+
     if condition_type.unwrap().get_type_id() == 1 {
         return Ok(Types::UnitType);
     }
@@ -192,14 +276,23 @@ pub fn type_check_if(condition: &Node, instr: &Vec<Box<Node>>, context: &Context
         if instr.len() == 0{
             return Ok(Types::UnitType);
         }
+        //If the final instruction does not have a semicolon the type will be determined by this instruction
         let ret_type = match &*instr[instr.len()-1]{
             Node::BlockValue(expr) => type_check(&expr, context),
             _ => Ok(Types::UnitType),
 
         };
+
+        for n in instr{
+            let e = type_check(n, context);
+            if e.is_err() {
+                return e;
+            }
+        }
+
         return ret_type;
     }
-    return Err("While condition did not evaluate to a boolean"); 
+    return Err("If condition did not evaluate to a boolean"); 
 }
 
 pub fn type_check_if_else(condition: &Node, if_instr: &Vec<Box<Node>>, else_instr: &Vec<Box<Node>>, context: &Context)
@@ -211,6 +304,8 @@ pub fn type_check_if_else(condition: &Node, if_instr: &Vec<Box<Node>>, else_inst
     if condition_type.unwrap().get_type_id() == 1 {
        let mut if_type: Types = Types::UnitType;
        let mut else_type: Types = Types::UnitType;
+
+       //Here the last instruction of each block is checked
        if if_instr.len() > 0 {
             if_type = match &*if_instr[if_instr.len()-1]{
                 Node::BlockValue(expr) => type_check(&expr, context).unwrap(),
@@ -228,6 +323,20 @@ pub fn type_check_if_else(condition: &Node, if_instr: &Vec<Box<Node>>, else_inst
 
         }
 
+        for n in if_instr{
+            let e = type_check(n, context);
+            if e.is_err() {
+                return e;
+            }
+        }
+
+        for n in else_instr{
+            let e = type_check(n, context);
+            if e.is_err() {
+                return e;
+            }
+        }
+
         if if_type.get_type_id() == else_type.get_type_id(){
             return Ok(if_type);
         }
@@ -237,7 +346,7 @@ pub fn type_check_if_else(condition: &Node, if_instr: &Vec<Box<Node>>, else_inst
         }
        
     }
-    return Err("While condition did not evaluate to a boolean");
+    return Err("If condition did not evaluate to a boolean");
 }
 
 pub fn type_check_return(node: &Option<Box<Node>>, context: &Context) -> Result<Types, &'static str>{
@@ -297,11 +406,15 @@ pub fn type_check(node: &Node, context: &Context) -> Result<Types, &'static str>
         Node::Declaration(_name, _b, typedef, value) 
         => type_check_let(typedef, value, context),
         Node::Assign(s, n) => type_check_assign(s, n, context),
-        Node::While(n, v) => type_check_while(n, context),
+        Node::While(n, v) => type_check_while(n, v, context),
         Node::IfStmt(n, v) => type_check_if(n, v, context),
         Node::IfElse(n, v1, v2) => type_check_if_else(n, v1, v2, context),
         Node::Return(o) => type_check_return(o, context),
         Node::UnaryOp(op, exp) => type_check_unary_op(exp, op, context),
+        Node::FnDef(id, paramvec, ret, instr) => 
+        type_check_fn_def(id, paramvec, ret, instr, context),
+        Node::ParamDef(_id, s) => type_check_param_def(s, context),
+        Node::BlockValue(a) => type_check(a, context),
         _ => Err("unknown type"),
         };
     return ret;
