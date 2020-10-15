@@ -27,12 +27,53 @@ impl Types{
     }
 }
 
+
+//Change var_env to VecDeque and add impl for getting value
 #[allow(dead_code)]
 pub struct Context{
-    var_env: HashMap<String, VarInfo>,
+    //var_env: HashMap<String, VarInfo>,
+    var_env: VecDeque<HashMap<String, VarInfo>>,
     fn_env: HashMap<String, FnInfo>,
 }
+
+impl Context{
+    fn get(&self, id: &String) -> Option<VarInfo> {
+        for i in &self.var_env {
+            if i.contains_key(id){
+                return Some(*i.get(id).unwrap());
+            }
+        };
+        return None;
+    }
+
+    fn insert(&mut self, id: &String, t: &Types, mutable: &bool) {
+        let mut var_info = VarInfo {t: Types::Unknown, mutable: true};
+        var_info.t = *t;
+        var_info.mutable = *mutable;
+        let s = id.clone();
+
+        if self.var_env.len() == 0 {
+            let mut map = HashMap::new();
+            map.insert(s, var_info);
+            self.var_env.push_front(map);
+        }
+        else{
+            self.var_env.get_mut(0).unwrap().insert(s, var_info);
+        }
+    }
+
+    fn add_scope(&mut self){
+        let map: HashMap<String, VarInfo>  = HashMap::new();
+        self.var_env.push_front(map);
+    }
+
+    fn remove_scope(&mut self){
+        self.var_env.pop_front();
+    }
+}
 #[allow(dead_code)]
+#[derive(Clone)]
+#[derive(Copy)]
 pub struct VarInfo{
     t: Types,
     mutable: bool,
@@ -46,22 +87,22 @@ pub struct FnInfo{
 
 #[allow(non_snake_case)]
 pub fn init_context() -> Context{
-    let v = HashMap::new();
+    let v = VecDeque::new();
     let f = HashMap::new();
     let A = VarInfo {t: Types::Number, mutable: true};
     let B: VarInfo = VarInfo {t: Types::Number, mutable: false};
     let D: VarInfo = VarInfo {t: Types::Boolean, mutable: true};
     let mut c: Context = Context {var_env: v, fn_env: f};
-    c.var_env.insert("A".to_string(), A);
-    c.var_env.insert("B".to_string(), B);
-    c.var_env.insert("D".to_string(), D);
+    c.insert(&"A".to_string(), &A.t, &A.mutable);
+    c.insert(&"B".to_string(), &B.t, &B.mutable);
+    c.insert(&"D".to_string(), &D.t, &D.mutable);
     c
 }
 
 pub fn type_check_fn_def(id: &String, params: &Vec<Box<Node>>, rtype: &Option<String>, 
     instr: &Vec<Box<Node>>, context: &Context) 
     -> Result<Types, &'static str> {
-        let mut ret_type = Types::Unknown;
+        let ret_type: Types;
         if rtype.is_none() {
             ret_type = Types::UnitType;
         }
@@ -83,6 +124,7 @@ pub fn type_check_fn_def(id: &String, params: &Vec<Box<Node>>, rtype: &Option<St
 
         let mut real_ret_type = Ok(Types::Unknown);
         let mut j = 0;
+        //Setting the actual returnted type
         for n in instr{
             match &**n {
                 Node::Return(_o) => real_ret_type = type_check(n, context),
@@ -96,6 +138,7 @@ pub fn type_check_fn_def(id: &String, params: &Vec<Box<Node>>, rtype: &Option<St
         }
 
         j = 0;
+        //Checks if any returns are of different type than the last
         for n in instr{
             let e = type_check(n, context);
             if e.is_err() {
@@ -122,10 +165,10 @@ pub fn type_check_fn_def(id: &String, params: &Vec<Box<Node>>, rtype: &Option<St
             return Ok(ret_type);
         }
 
-        return Err("asfasdf");
+        return Err("Mismatched return types");
 }
 
-pub fn type_check_param_def(def: &String, context: &Context) -> Result<Types, &'static str> {
+pub fn type_check_param_def(def: &String, _context: &Context) -> Result<Types, &'static str> {
     let ret_type = match def as &str{
         ": i32" => Types::Number,
         ": bool" => Types::Boolean,
@@ -232,7 +275,7 @@ pub fn type_check_let(typedef: &Option<String>, value: &Option<Box<Node>>, conte
 }
 
 pub fn type_check_assign(name: &String, value: &Node, context: &Context) -> Result<Types, &'static str>{
-    let left = context.var_env.get(name).unwrap();
+    let left = context.get(name).unwrap();
     if !left.mutable {
         return Err("Tried assigning a value to a nonmutable variable");
     }
@@ -402,7 +445,7 @@ pub fn type_check(node: &Node, context: &Context) -> Result<Types, &'static str>
         Node::Number(_n) => Ok(Types::Number),
         Node::Boolean(_b) => Ok(Types::Boolean),
         Node::Op(l, o, r) => type_check_op(l, o, r, context),
-        Node::ID(s) => Ok(context.var_env.get(s).unwrap().t),
+        Node::ID(s) => Ok(context.get(s).unwrap().t),
         Node::Declaration(_name, _b, typedef, value) 
         => type_check_let(typedef, value, context),
         Node::Assign(s, n) => type_check_assign(s, n, context),
