@@ -5,20 +5,20 @@ use crate::ast::Node;
 use crate::ast::Opcode;
 
 
+//TODO fn_env insert and calls, comparison operators on bools
+
 #[derive(Clone)]
-#[derive(Copy)]
+//#[derive(Copy)]
 #[derive(Debug)]
 pub enum Types{
     Boolean,
     Number,
     UnitType,
     Unknown,
-}
-
-pub enum References{
     Ref(Box<Types>),
     MutRef(Box<Types>),
 }
+
 
 impl Types{
     fn get_type_id(&self) -> i32{
@@ -27,6 +27,8 @@ impl Types{
             Types::Boolean => 1,
             Types::Number => 2,
             Types::UnitType => 3,
+            Types::Ref(_a) => 4,
+            Types::MutRef(_b) => 5,
         };
         id
     }
@@ -45,7 +47,7 @@ impl Context{
     fn get(&self, id: &String) -> Option<VarInfo> {
         for i in &self.var_env {
             if i.contains_key(id){
-                return Some(*i.get(id).unwrap());
+                return Some(i.get(id).unwrap().clone());
             }
         };
         return None;
@@ -78,7 +80,7 @@ impl Context{
 }
 #[allow(dead_code)]
 #[derive(Clone)]
-#[derive(Copy)]
+//#[derive(Copy)]
 pub struct VarInfo{
     t: Types,
     mutable: bool,
@@ -98,6 +100,12 @@ pub fn init_context() -> Context{
     let B: VarInfo = VarInfo {t: Types::Number, mutable: false};
     let D: VarInfo = VarInfo {t: Types::Boolean, mutable: true};
     let mut c: Context = Context {var_env: v, fn_env: f};
+    let mut parameters = vec![Types::Unknown; 3];
+    parameters[0] = Types::Number;
+    parameters[1] = Types::Boolean;
+    parameters[2] = Types::Number;
+    let fn_info = FnInfo {ret: Types::Number, params: parameters};
+    c.fn_env.insert("foo".to_string(), fn_info);
     c.insert(&"A".to_string(), &A.t, &A.mutable);
     c.insert(&"B".to_string(), &B.t, &B.mutable);
     c.insert(&"D".to_string(), &D.t, &D.mutable);
@@ -159,14 +167,14 @@ pub fn type_check_fn_def(id: &String, params: &Vec<Box<Node>>, rtype: &Option<St
                 return e;
             }
             match &**n {
-                Node::Return(_o) => if e.unwrap().get_type_id() != real_ret_type.unwrap().get_type_id(){
+                Node::Return(_o) => if e.unwrap().get_type_id() != real_ret_type.clone().unwrap().get_type_id(){
                     return Err("Function tries to return different types");
                 },
-                Node::BlockValue(_v) => if e.unwrap().get_type_id() != real_ret_type.unwrap().get_type_id(){
+                Node::BlockValue(_v) => if e.unwrap().get_type_id() != real_ret_type.clone().unwrap().get_type_id(){
                     return Err("Function tries to return different types");
                 },
                 Node::IfElse(_a, _b, _c) => if j == instr.len()-1 {
-                    if e.unwrap().get_type_id() != real_ret_type.unwrap().get_type_id(){
+                    if e.unwrap().get_type_id() != real_ret_type.clone().unwrap().get_type_id(){
                         return Err("Function tries to return different types");
                     }
                 },
@@ -176,12 +184,38 @@ pub fn type_check_fn_def(id: &String, params: &Vec<Box<Node>>, rtype: &Option<St
         }
 
         context.remove_scope();
+
         
         if ret_type.get_type_id() == real_ret_type.unwrap().get_type_id(){
+            let fn_info = FnInfo {ret: ret_type.clone(), params: parameter_defs};
+            context.fn_env.insert(id.clone(), fn_info);
             return Ok(ret_type);
         }
 
         return Err("Mismatched return types");
+}
+
+pub fn type_check_call(id: &String, params: &Vec<Box<Node>>, mut context: &mut Context) -> Result<Types, &'static str>{
+    let fn_info = context.fn_env.get(id);
+    if fn_info.is_none(){
+        return Err("Function called not in context");
+    }
+    let mut parameter_defs = vec![Types::Unknown; params.len()];
+    let mut i = 0;
+    for param in params{
+        parameter_defs[i] = type_check(param, &mut context).unwrap();
+        i += 1;
+    }
+    let new_fn_info = context.fn_env.get(id);
+    let mut i = 0;
+    for _param in &parameter_defs{
+        if parameter_defs[i].get_type_id() != new_fn_info.unwrap().params[i].get_type_id(){
+            return Err("mismatched parameter types");
+        }
+        i += 1;
+    }
+
+    return Ok(new_fn_info.unwrap().ret.clone());
 }
 
 pub fn type_check_param_def(def: &String, _context: &mut Context) -> Result<Types, &'static str> {
@@ -224,8 +258,8 @@ pub fn type_check_op(node1: &Node, operation: &Opcode, node2: &Node, context: &m
     //If we are not comparing the type returned from the operation needs to be equal to both inputs
     if !compare {
         let x = left.clone();
-        if left.unwrap().get_type_id() == right.unwrap().get_type_id() && 
-        left.unwrap().get_type_id() == return_type.get_type_id(){
+        if left.clone().unwrap().get_type_id() == right.unwrap().get_type_id() && 
+        left.clone().unwrap().get_type_id() == return_type.get_type_id(){
             return x;
         }
         else {
@@ -235,6 +269,16 @@ pub fn type_check_op(node1: &Node, operation: &Opcode, node2: &Node, context: &m
 
     //Otherwise we need to make sure both inputs are of equal type
     else{
+        let number_type = match operation{
+            Opcode::Less => true,
+            Opcode::LessOrEq => true,
+            Opcode::Greater => true,
+            Opcode::GreaterorEq => true,
+            _ => false,
+        };
+        if number_type && (left.clone().unwrap().get_type_id() != 2 || right.clone().unwrap().get_type_id() != 2){
+            return Err("This operation requires both operands to be numbers");
+        }
         if left.unwrap().get_type_id() == right.unwrap().get_type_id() {
             return Ok(Types::Boolean);
         }
@@ -250,6 +294,8 @@ pub fn type_check_let(id: &String, mutable: &bool, typedef: &Option<String>, val
         Some(s) => match s as &str {
             ": i32" => Types::Number,
             ": bool" => Types::Boolean,
+            ": &i32" => Types::Ref(Box::new(Types::Number)),
+            ": &bool" => Types::Ref(Box::new(Types::Boolean)),
             _ => panic!("unrecognized type"),
         },
         _ => Types::Unknown,
@@ -265,12 +311,12 @@ pub fn type_check_let(id: &String, mutable: &bool, typedef: &Option<String>, val
     if right.is_ok(){
         //If no type was specified on the left side
         if left.get_type_id() == 0{
-            context.insert(id, &right.unwrap(), mutable);
+            context.insert(id, &right.clone().unwrap(), mutable);
             return right;
         }
         //If both sides match
-        else if left.get_type_id() == right.unwrap().get_type_id() {
-            context.insert(id, &right.unwrap(), mutable);
+        else if left.get_type_id() == right.clone().unwrap().get_type_id() {
+            context.insert(id, &right.clone().unwrap(), mutable);
             return right;
         }
         else{
@@ -307,7 +353,7 @@ pub fn type_check_assign(name: &String, value: &Node, context: &mut Context) -> 
         return Err("Invalid expression");
     }
 
-    if left.t.get_type_id() != right.unwrap().get_type_id(){
+    if left.t.get_type_id() != right.clone().unwrap().get_type_id(){
         return Err("Mismatched types");
     }
     return right;
@@ -437,6 +483,7 @@ pub fn type_check_unary_op(node: &Node, operation: &Opcode, context: &mut Contex
         Opcode::Not => Types::Boolean,
         Opcode::Ref => Types::Unknown,
         Opcode::DeRef => Types::Unknown,
+        Opcode::MutRef => Types::Unknown,
         _=> panic!("Unrecognized unary op"),
     };
     //Unary -, expression needs to be a number
@@ -463,7 +510,42 @@ pub fn type_check_unary_op(node: &Node, operation: &Opcode, context: &mut Contex
         return Ok(Types::Boolean);
     }
 
-    return Err("lasd");
+    else {
+        let create_ref = match operation {
+            Opcode::Ref => true,
+            Opcode::MutRef => true,
+            _ => false,
+        };
+
+        let expr_type = type_check(node, context);
+        if expr_type.is_err(){
+            return Err("invalid expression");
+        }
+
+        //If we are dereferencing we need to make sure the expression is a reference
+        if !create_ref{
+            
+            match expr_type.unwrap(){
+                Types::MutRef(t) => return Ok(*t),
+                Types::Ref(t) => return Ok(*t),
+                _ => return Err("Tried dereferencing a non reference"),
+            }
+        }
+
+        let mutable = match operation {
+            Opcode::MutRef => true,
+            Opcode::Ref => false,
+            _ => panic!("unreachable"),
+        };
+
+        if mutable {
+            return Ok(Types::MutRef(Box::new(expr_type.unwrap())));
+        }
+
+        return Ok(Types::Ref(Box::new(expr_type.unwrap())));
+
+        
+    }
 }
 
 
@@ -488,6 +570,7 @@ pub fn type_check(node: &Node, context: &mut Context) -> Result<Types, &'static 
         type_check_fn_def(id, paramvec, ret, instr, context),
         Node::ParamDef(_id, s) => type_check_param_def(s, context),
         Node::BlockValue(a) => type_check(a, context),
+        Node::Call(s, v) => type_check_call(s, v, context),
         _ => Err("unknown type"),
         };
     return ret;

@@ -5,8 +5,8 @@ use crate::ast::*;
 grammar;
 
 
-pub Num: usize = {
-    r"[0-9]+" => usize::from_str(<>).unwrap(),
+pub Num: i32 = {
+    r"[0-9]+" => i32::from_str(<>).unwrap(),
 };
 
 Factor: Box<Node> = {
@@ -79,6 +79,7 @@ UnaryOp: Opcode = {
     "-" => Opcode::UnarySub,
     "&" => Opcode::Ref,
     "*" => Opcode::DeRef,
+    "&mut" => Opcode::MutRef,
 };
 
 pub Stmt: Box<Node> = {
@@ -89,6 +90,10 @@ pub Declaration: Box<Node> = {
     "let" "mut" <name:Id> <t:TypeSpec?> <v:("=" <Instruction>)?> => Box::new(Node::Declaration(name, true, t, v)),
     "let" <name:Id> <t:TypeSpec?> <v:("=" <Instruction>)?> => Box::new(Node::Declaration(name, false, t, v)),
 };
+
+pub WriteByReference: Box<Node> = {
+    "*" <name:Id> "=" <value:Instruction> => Box::new(Node::WriteByRef(name, value)),
+}
 
 Comma<T>: Vec<T> = { 
     <v:(<T> ",")*> <e:T?> => match e { 
@@ -144,6 +149,10 @@ pub TypeSpec: String = {
     //":" <name:Id> => String::from_str(&name).unwrap(),
     ": i32" => String::from_str(<>).unwrap(),
     ": bool" => String::from_str(<>).unwrap(),
+    ": &i32" => String::from_str(<>).unwrap(),
+    ": &bool" => String::from_str(<>).unwrap(),
+    ": &mut i32" => String::from_str(<>).unwrap(),
+    ": &mut bool" => String::from_str(<>).unwrap(),
 };
 
 pub Function: Box<Node> = {
@@ -162,6 +171,6 @@ ParamDef: Box<Node> = {
 
 Params = Comma<ParamDef>;
 
-Arguments = Comma<Expr>;
+Arguments = Comma<BoolExp>;
 
 Body = SemiColon<Instruction>;

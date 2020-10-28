@@ -2,7 +2,7 @@ use std::fmt;
 
 #[derive(Debug, Clone)]
 pub enum Node {
-    Number(usize),
+    Number(i32),
     ID(String),
     //String describes the type
     Type(String),
@@ -27,6 +27,7 @@ pub enum Node {
     Return(Option<Box<Node>>),
     Boolean(bool),
     BlockValue(Box<Node>),
+    WriteByRef(String, Box<Node>),
 }
 
 #[derive(Debug, Clone)]
@@ -48,6 +49,7 @@ pub enum Opcode {
     UnarySub,
     Ref,
     DeRef,
+    MutRef,
 }
 
 impl fmt::Display for Opcode {

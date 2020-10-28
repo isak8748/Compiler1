@@ -18,10 +18,7 @@ fn main() {
     println!("{}", StmtParser::new().parse("x = 7").unwrap());
     println!("{:?}", StmtParser::new().parse("num = 567/14+56-14",).unwrap());
     test_parse();
-    test_types();
-    test1();
-
-    
+    test_types();    
 }
 
 
@@ -99,19 +96,17 @@ fn test_parse() {
       }
   }
 
-  fn test1(){
-      let mut a = 5;
-      let b = &mut a;
-      let c = 5;
-      let d = 8;
-      let x = c + &d;
-      test2(b);
-      println!("{:?}", b);
+  #[allow(dead_code)]
+  fn test_b(){
+      let mut a = 1;
+      let _roger = &a;
+      let __b = &mut a;
+      let _rr = &mut a;
+      let _xd = &mut a;
+      let c = &a;
+      println!("{:?}", c);
   }
 
-  fn test2(num: &mut i32){
-    *num = 13;
-  }
 
 
   fn test_types(){
@@ -160,11 +155,20 @@ fn test_parse() {
     assert!(type_check(&WhileParser::new().parse("while true {let x = 5; return 12;}").unwrap(), &mut c).is_ok());
     assert!(type_check(&WhileParser::new().parse("while D && 13 <= A || 456 != B {let A = true; return A || false;}").unwrap(), &mut c).is_ok());
     assert!(type_check(&WhileParser::new().parse("while D && 13 <= A || 456 != B {let A = true; if A && false {return A || true}}").unwrap(), &mut c).is_ok());
-
-
-
-
-
+    assert!(type_check(&WhileParser::new().parse("while true {let A = true; let c = &A}").unwrap(), &mut c).is_ok());
+    assert!(type_check(&WhileParser::new().parse("while true {let A = true; let c = *A}").unwrap(), &mut c).is_err());
+    assert!(type_check(&WhileParser::new().parse("while true {let A = true; let c = &A; let b = *c}").unwrap(), &mut c).is_ok());
+    assert!(type_check(&WhileParser::new().parse("while true {let A = true; let c = &mut A; let b = *c}").unwrap(), &mut c).is_ok());
+    assert!(type_check(&WhileParser::new().parse("while true {let A = true; let c = &A; let b = *c}").unwrap(), &mut c).is_ok());
+    assert!(type_check(&WhileParser::new().parse("while true {let A: i32 = 5; let c: &i32 = &A; let b = *c}").unwrap(), &mut c).is_ok());
+    assert!(type_check(&FunctionParser::new().parse("fn fib(a: bool, d: bool) -> i32 {
+        let x = 1+4;
+        let y = true || false;
+        let z = 2345;
+        let a: i32 = foo(1 + 4, true || false, z + 1);
+        a
+    }").unwrap(), &mut c).is_ok());
+    assert!(type_check(&WhileParser::new().parse("while false{let a: bool = true <= false}").unwrap(), &mut c).is_err());
 
 
   }
