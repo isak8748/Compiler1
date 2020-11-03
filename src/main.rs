@@ -6,9 +6,13 @@ use parser::*;
 
 pub mod ast;
 pub mod typechecker;
+pub mod interpreter;
 
 use crate::ast::{Opcode, Node};
 use crate::typechecker::{type_check_op, init_context, type_check};
+use crate::interpreter::{interpret, interp_context};
+use std::collections::HashMap;
+
 
 fn main() {
     println!("{}", ExprOpParser::new().parse("+").unwrap());
@@ -18,7 +22,9 @@ fn main() {
     println!("{}", StmtParser::new().parse("x = 7").unwrap());
     println!("{:?}", StmtParser::new().parse("num = 567/14+56-14",).unwrap());
     test_parse();
-    test_types();    
+    test_types();
+    test_interp();
+    test_hashmap();    
 }
 
 
@@ -107,6 +113,14 @@ fn test_parse() {
       println!("{:?}", c);
   }
 
+  fn test_hashmap(){
+      let mut map: HashMap<i32, bool> = HashMap::new();
+      map.insert(3, true);
+      println!("{:?}", map);
+      map.insert(3, false);
+      println!("{:?}", map);
+
+  }
 
 
   fn test_types(){
@@ -171,4 +185,23 @@ fn test_parse() {
     assert!(type_check(&WhileParser::new().parse("while false{let a: bool = true <= false}").unwrap(), &mut c).is_err());
 
 
+  }
+
+  fn test_interp(){
+      let mut c = interp_context();
+      assert!(interpret(&BoolExpParser::new().parse("1+2").unwrap(), &mut c).is_ok());
+      println!("{:?}", interpret(&BoolExpParser::new().parse("1+2").unwrap(), &mut c));
+      assert!(interpret(&BoolExpParser::new().parse("true == false").unwrap(), &mut c).is_ok());
+      println!("{:?}", interpret(&BoolExpParser::new().parse("true == false").unwrap(), &mut c));
+      assert!(interpret(&BoolExpParser::new().parse("23 % 4 < 345 || 15-3 == 34").unwrap(), &mut c).is_ok());
+      println!("{:?}", interpret(&BoolExpParser::new().parse("23 % 4 < 345 || 15-3 == 34").unwrap(), &mut c));
+      println!("{:?}", interpret(&BoolExpParser::new().parse("24 + -6").unwrap(), &mut c));
+      assert!(interpret(&DeclarationParser::new().parse("let a = 0").unwrap(), &mut c).is_ok());
+      let _v = interpret(&IfParser::new().parse("if 4 < 5 {
+        let a = 0;
+        while a < 10{
+            a = a + 1;
+        };
+    }").unwrap(), &mut c);
+      
   }

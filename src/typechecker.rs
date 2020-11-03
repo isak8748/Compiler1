@@ -35,7 +35,6 @@ impl Types{
 }
 
 
-//Change var_env to VecDeque and add impl for getting value
 #[allow(dead_code)]
 pub struct Context{
     //var_env: HashMap<String, VarInfo>,
@@ -543,7 +542,6 @@ pub fn type_check_unary_op(node: &Node, operation: &Opcode, context: &mut Contex
         }
 
         return Ok(Types::Ref(Box::new(expr_type.unwrap())));
-
         
     }
 }
