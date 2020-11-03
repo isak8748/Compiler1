@@ -80,6 +80,12 @@ fn test_parse() {
     println!("{:?}", IfParser::new().parse("if x {let a = 5; let b = 3; a + 5}").unwrap());
     println!("{:?}", BoolExpParser::new().parse("!(a && true) || !isTrue(d, s, d,)").unwrap());
     println!("{:?}", BoolExpParser::new().parse("!D && D == !false").unwrap());
+    println!("{:?}", &FunctionParser::new().parse("fn fib(a: bool, d: bool) -> i32 {
+        let x = 5;
+        let y = &mut x;
+        *y = 18;
+        return x
+    }").unwrap());
     println!("{:?}", asd());
     
   }
@@ -181,6 +187,12 @@ fn test_parse() {
         let z = 2345;
         let a: i32 = foo(1 + 4, true || false, z + 1);
         a
+    }").unwrap(), &mut c).is_ok());
+    assert!(type_check(&FunctionParser::new().parse("fn fib(a: bool, d: bool) -> i32 {
+        let x = 5;
+        let y = &mut x;
+        *y = 18;
+        return x
     }").unwrap(), &mut c).is_ok());
     assert!(type_check(&WhileParser::new().parse("while false{let a: bool = true <= false}").unwrap(), &mut c).is_err());
 

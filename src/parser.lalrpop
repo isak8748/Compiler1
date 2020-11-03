@@ -92,7 +92,7 @@ pub Declaration: Box<Node> = {
 };
 
 pub WriteByReference: Box<Node> = {
-    "*" <name:Id> "=" <value:Instruction> => Box::new(Node::WriteByRef(name, value)),
+    <op:UnaryOp> <name:Id> "=" <value:Instruction> => Box::new(Node::WriteByRef(op, name, value)),
 }
 
 Comma<T>: Vec<T> = { 
@@ -143,6 +143,7 @@ Instruction: Box<Node> = {
     IfElse,
     While,
     Return,
+    WriteByReference,
 };
 
 pub TypeSpec: String = {

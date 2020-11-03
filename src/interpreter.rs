@@ -224,6 +224,29 @@ pub fn interpret_if(condition: &Node, instr: &Vec<Box<Node>>, vars: &mut VarCont
         return Ok(Value::NoValue);
 }
 
+pub fn interpret_if_else(condition: &Node, if_instr: &Vec<Box<Node>>, else_instr: &Vec<Box<Node>>, vars: &mut VarContext)
+    -> Result<Value, &'static str>{
+        let if_condition = interpret(condition, vars);
+        let condition_value = match if_condition.unwrap(){
+            Value::Boolean(b) => b,
+            _ => panic!("while condition did not evaluate to boolean"),
+        };
+        if condition_value{
+            vars.add_scope();
+            for n in if_instr{
+                let _r = interpret(n, vars);
+            }
+            vars.remove_scope();
+        }
+        else{
+            vars.add_scope();
+            for n in else_instr{
+                let _r = interpret(n, vars);
+            }
+            vars.remove_scope();
+        }
+        return Ok(Value::NoValue); 
+    }
 
 pub fn interpret(node: &Node, vars: &mut VarContext) -> Result<Value, &'static str>{
     let val = match node{
@@ -237,6 +260,7 @@ pub fn interpret(node: &Node, vars: &mut VarContext) -> Result<Value, &'static s
         Node::Assign(s, n) => interpret_assign(s, n, vars),
         Node::While(n, v) => interpret_while(n, v, vars),
         Node::IfStmt(n, v) => interpret_if(n, v, vars),
+        Node::IfElse(n, v1, v2) => interpret_if_else(n, v1, v2, vars),
         _ => panic!("err"), 
     };
     return val;

@@ -27,7 +27,7 @@ pub enum Node {
     Return(Option<Box<Node>>),
     Boolean(bool),
     BlockValue(Box<Node>),
-    WriteByRef(String, Box<Node>),
+    WriteByRef(Opcode, String, Box<Node>),
 }
 
 #[derive(Debug, Clone)]

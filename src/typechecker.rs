@@ -546,6 +546,34 @@ pub fn type_check_unary_op(node: &Node, operation: &Opcode, context: &mut Contex
     }
 }
 
+pub fn type_check_write_ref(op: &Opcode, id: &String, node: &Node, context: &mut Context) -> Result<Types, &'static str> {
+    let b = match op{
+        Opcode::DeRef => true,
+        _ => false,
+    };
+
+    if !b{
+        return Err("illegal operation for assignment");
+    }
+
+    let var = context.get(id);
+    if var.is_none(){
+        return Err("Unidentified variable name");
+    }
+    if var.clone().unwrap().t.get_type_id() != 5{
+        return Err("Syntax error");
+    }
+    let t = match var.unwrap().t{
+        Types::MutRef(t) => t,
+        _=> panic!("unreachable")
+    };
+
+    if t.get_type_id() != type_check(node, context).unwrap().get_type_id(){
+        return Err("mistmatched types");
+    }
+    return Ok(Types::Unknown);
+}
+
 
 
 #[allow(dead_code)]
@@ -569,6 +597,7 @@ pub fn type_check(node: &Node, context: &mut Context) -> Result<Types, &'static 
         Node::ParamDef(_id, s) => type_check_param_def(s, context),
         Node::BlockValue(a) => type_check(a, context),
         Node::Call(s, v) => type_check_call(s, v, context),
+        Node::WriteByRef(op, n, v) => type_check_write_ref(op, n, v, context),
         _ => Err("unknown type"),
         };
     return ret;
