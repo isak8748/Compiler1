@@ -257,8 +257,9 @@ pub fn type_check_op(node1: &Node, operation: &Opcode, node2: &Node, context: &m
     //If we are not comparing the type returned from the operation needs to be equal to both inputs
     if !compare {
         let x = left.clone();
-        if left.clone().unwrap().get_type_id() == right.unwrap().get_type_id() && 
-        left.clone().unwrap().get_type_id() == return_type.get_type_id(){
+        if left.clone().unwrap().get_type_id() == right.unwrap().get_type_id() && //both operands are of same type
+        left.clone().unwrap().get_type_id() == return_type.get_type_id()          //as well as the returned type
+        &&(return_type.get_type_id() ==1 || return_type.get_type_id() == 2){      //number or boolean
             return x;
         }
         else {
@@ -275,10 +276,13 @@ pub fn type_check_op(node1: &Node, operation: &Opcode, node2: &Node, context: &m
             Opcode::GreaterorEq => true,
             _ => false,
         };
+        if left.clone().unwrap().get_type_id() != 1 && left.clone().unwrap().get_type_id() != 2{
+            return Err("invalid operands");
+        }
         if number_type && (left.clone().unwrap().get_type_id() != 2 || right.clone().unwrap().get_type_id() != 2){
             return Err("This operation requires both operands to be numbers");
         }
-        if left.unwrap().get_type_id() == right.unwrap().get_type_id() {
+        if left.clone().unwrap().get_type_id() == right.unwrap().get_type_id() {
             return Ok(Types::Boolean);
         }
         else {
@@ -476,6 +480,7 @@ pub fn type_check_return(node: &Option<Box<Node>>, context: &mut Context) -> Res
     return ret;
 }
 
+
 pub fn type_check_unary_op(node: &Node, operation: &Opcode, context: &mut Context) -> Result<Types, &'static str> {
     let op_type = match operation {
         Opcode::UnarySub => Types::Number,
@@ -536,6 +541,15 @@ pub fn type_check_unary_op(node: &Node, operation: &Opcode, context: &mut Contex
             Opcode::Ref => false,
             _ => panic!("unreachable"),
         };
+
+        let identifier = match node{
+            Node::ID(_s) => true,
+            _ => false,
+        };
+
+        if !identifier{
+            return Err("Tried creating a reference to a non ID");
+        }
 
         if mutable {
             return Ok(Types::MutRef(Box::new(expr_type.unwrap())));

@@ -15,6 +15,7 @@ use std::collections::HashMap;
 
 
 fn main() {
+    test_string();
     println!("{}", ExprOpParser::new().parse("+").unwrap());
     println!("{}", ExprParser::new().parse("5+6*7").unwrap());
     println!("{}", ExprParser::new().parse("22 * 44 + 66").unwrap());
@@ -108,6 +109,17 @@ fn test_parse() {
       }
   }
 
+  fn test_string(){
+      let a: String = "xd".to_string();
+      let b: String = "xd".to_string();
+      if a == b{
+          println!("equal");
+      }
+      else{
+          println!("not equal");
+      }
+  }
+
   #[allow(dead_code)]
   fn test_b(){
       let mut a = 1;
@@ -195,6 +207,8 @@ fn test_parse() {
         return x
     }").unwrap(), &mut c).is_ok());
     assert!(type_check(&WhileParser::new().parse("while false{let a: bool = true <= false}").unwrap(), &mut c).is_err());
+    assert!(type_check(&WhileParser::new().parse("while false{let a: bool = 5 && 6}").unwrap(), &mut c).is_err());
+    assert!(type_check(&WhileParser::new().parse("while false{let a: bool = false; let a = &5}").unwrap(), &mut c).is_err());    
 
 
   }
@@ -214,6 +228,15 @@ fn test_parse() {
         while a < 10{
             a = a + 1;
         };
+    }").unwrap(), &mut c);
+    let _d = interpret(&IfParser::new().parse("if true {
+        let a = 2;
+        let b = &a;
+        let d = &a;
+        let xd = &a;
+        let rrr = &a;
+        let m = &mut a;
+        let c = *m;
     }").unwrap(), &mut c);
       
   }

@@ -13,9 +13,11 @@ pub struct VarContext{
 }
 
 #[derive(Clone)]
+#[derive(Debug)]
 struct VarInfo{
     value: Value,
     borrows: VecDeque<Borrow>,
+    borrow_of: Option<String>,
 }
 
 #[derive(Debug)]
@@ -23,28 +25,65 @@ struct VarInfo{
 pub enum Value{
     Number(i32),
     Boolean(bool),
+    RefValue,
     NoValue,
 }
 
 #[derive(Clone)]
+#[derive(Debug)]
 struct Borrow{
     name: String,
     mutable: bool,
 }
 
 impl VarContext{
-    fn update(&mut self, id: &String, v: &Value){
+    fn insert_borrow(&mut self, borrow_name: &String, id: &String, is_mut: bool){
         let brws = VecDeque::new();
-        let mut var_info = VarInfo {value: Value::NoValue, borrows: brws};
-        var_info.value = v.clone();
-        let s = id.clone();
+        let mut var_info = VarInfo{value: Value::NoValue, borrows: brws, borrow_of: None};
+        let brw = Borrow {name: borrow_name.clone(), mutable: is_mut};
+
+        let borrow_var_info = VarInfo{value: Value::NoValue, borrows: VecDeque::new(), borrow_of: Some(id.clone())};
+        self.var_env[0].insert(borrow_name.clone(), borrow_var_info);
 
         for i in &mut self.var_env {
             if i.contains_key(id){
-                i.insert(s, var_info);
+                let temp = i.get_mut(id).unwrap();
+                if is_mut {
+                    temp.borrows.clear();
+                }
+                temp.borrows.push_front(brw);
+                var_info = temp.clone();
+                break;
+            }
+        }
+
+        for i in &mut self.var_env{
+            if i.contains_key(id){
+                i.insert(id.clone(), var_info);
                 return;
             }
+        }
+    }
+
+    fn update(&mut self, id: &String, v: &Value){
+        let brws = VecDeque::new();
+        let mut var_info = VarInfo{value: Value::NoValue, borrows: brws, borrow_of: None};
+
+        for i in &mut self.var_env {
+            if i.contains_key(id){
+                let temp = i.get_mut(id).unwrap();
+                temp.value = v.clone();
+                var_info = temp.clone();
+                break;
+            }
         };
+
+        for i in &mut self.var_env{
+            if i.contains_key(id){
+                i.insert(id.clone(), var_info);
+                return;
+            }
+        }
     }
 
     fn get(&self, id: &String) -> Option<VarInfo> {
@@ -58,7 +97,7 @@ impl VarContext{
 
     fn insert(&mut self, id: &String, v: &Value) {
         let brws = VecDeque::new();
-        let mut var_info = VarInfo {value: Value::NoValue, borrows: brws};
+        let mut var_info = VarInfo {value: Value::NoValue, borrows: brws, borrow_of: None};
         var_info.value = v.clone();
         let s = id.clone();
 
@@ -156,19 +195,93 @@ pub fn interpret_op(node1: &Node, operation: &Opcode, node2: &Node, vars: &mut V
 //add suppport for all unary operations
 pub fn interpret_unary_op(operation: &Opcode, node: &Node, vars: &mut VarContext) -> Result<Value, &'static str>{
     let value = interpret(node, vars);
-    if value.is_err(){
-        return Err("error");
-    }
-    let val = match value.clone().unwrap(){
-        Value::Number(n) => n,
-        _ => panic!("error"),
-    };
-    let ret = match operation{
-        Opcode::UnarySub => Value::Number(-val),
-        _ => panic!("error"),
+    let number = match operation{
+        Opcode::UnarySub => true,
+        _ => false,
     };
 
-    return Ok(ret);
+    if number{
+        if value.is_err(){
+            return Err("error");
+        }
+        let val = match value.clone().unwrap(){
+            Value::Number(n) => n,
+            _ => panic!("error"),
+        };
+    
+        return Ok(Value::Number(-val));  
+    }
+
+    let boolop = match operation{
+        Opcode::Not => true,
+        _ => false,
+    };
+    
+    if boolop{
+        if value.is_err(){
+            return Err("error");
+        }
+        let val = match value.clone().unwrap(){
+            Value::Boolean(b) => b,
+            _ => panic!("error"),
+        };
+        return Ok(Value::Boolean(!val)); 
+    }
+
+    let deref = match operation{
+        Opcode::DeRef => true,
+        _ => false,
+    };
+
+    if deref{
+        let s = match node{
+            Node::ID(s) => s,
+            _ => panic!("should be unreachable"),
+        };
+
+        println!("-----------------------------");
+        let var_info = vars.get(s);
+        println!("{:?}", var_info.clone());
+        let id = var_info.unwrap().borrow_of;
+        println!("{:?}", id);
+        let value_info = vars.get(&id.clone().unwrap()).unwrap();
+        println!("{:?}", value_info);
+        let mut non_mut_found = false;
+        for brw in value_info.borrows{                 //Check all other borrows 
+            println!("{:?}", brw.name);
+            println!("{:?}", *s);
+            if brw.mutable && brw.name != *s{        //If another reference exists which is mutable
+                panic!("Mutable reference and another reference exists");
+            }
+            else if !brw.mutable && !non_mut_found{                    //If a non-mutable reference is found
+                non_mut_found = true;
+                if brw.name == *s{                  //If it is our reference that is ok
+                    return Ok(value_info.value);
+                }
+                continue;
+            }
+            else if non_mut_found && brw.name == *s{
+                if brw.mutable{                      //We know mutable and non-mutable references exist
+                    panic!("Mutable reference and another reference exists");
+                }
+                else{
+                    return Ok(value_info.value);   //Multiple non-mutable references are fine
+                }
+                
+            }
+            else if brw.name == *s{
+                return Ok(value_info.value);   //Multiple non-mutable references are fine
+            }
+
+        }
+        panic!("Reference not found");
+
+    }
+
+
+
+    return Ok(Value::RefValue); //If we are creating a reference this will signal to interpret_let or interpret_assign to handle it
+
 }
 
 pub fn interpret_let(id: &String, value: &Option<Box<Node>>, vars: &mut VarContext) -> Result<Value, &'static str>{
@@ -176,14 +289,56 @@ pub fn interpret_let(id: &String, value: &Option<Box<Node>>, vars: &mut VarConte
         Some(n) => interpret(n, vars),
         None => Ok(Value::NoValue),
     };
+
+    let create_ref = match val.clone().unwrap() {
+        Value::RefValue => true,
+        _ => false,
+    };
+    if create_ref{
+        create_reference(id, &value.as_ref().unwrap(), vars);
+        return Ok(Value::NoValue);
+    }
     vars.insert(id, &val.unwrap());
     return Ok(Value::NoValue);
 }
 
-pub fn interpret_assign(name: &String, value: &Node, vars: &mut VarContext) -> Result<Value, &'static str>{
+pub fn interpret_assign(id: &String, value: &Node, vars: &mut VarContext) -> Result<Value, &'static str>{
     let val = interpret(value, vars);
-    vars.update(name, &val.unwrap());
+    vars.update(id, &val.clone().unwrap());
+    let create_ref = match val.clone().unwrap() {
+        Value::RefValue => true,
+        _ => false,
+    };
+    if create_ref{
+        create_reference(id, value, vars);
+        return Ok(Value::NoValue);
+    }
+    vars.insert(id, &val.unwrap());
     return Ok(Value::NoValue);
+}
+
+fn create_reference(id: &String, node: &Node, vars: &mut VarContext){
+    let op = match node{
+        Node::UnaryOp(o, _n) => o,
+        _ => panic!("unreachable"),
+    };
+    let is_mut = match op{
+        Opcode::MutRef => true,
+        _ => false,
+    };
+    let identifier = match node{
+        Node::UnaryOp(_o, n) => *n.clone(),
+        _ => panic!("unreachable"),
+    };
+    let ref_name = match identifier{
+        Node::ID(s) => s,
+        _ => panic!("unreachable"),
+    };
+    println!("{:?}", id);
+    println!("{:?}", ref_name);
+    vars.insert_borrow(id, &ref_name, is_mut);
+    //vars.insert(&ref_name, &Value::NoValue);
+
 }
 
 pub fn interpret_while(condition: &Node, instr: &Vec<Box<Node>>, vars: &mut VarContext)-> Result<Value, &'static str>{
@@ -248,6 +403,14 @@ pub fn interpret_if_else(condition: &Node, if_instr: &Vec<Box<Node>>, else_instr
         return Ok(Value::NoValue); 
     }
 
+pub fn interpret_return(node: &Option<Box<Node>>, vars: &mut VarContext) -> Result<Value, &'static str>{
+    let ret = match node{
+        Some(v) => interpret(&v, vars),
+        None => Ok(Value::NoValue),
+    };
+    ret
+}
+
 pub fn interpret(node: &Node, vars: &mut VarContext) -> Result<Value, &'static str>{
     let val = match node{
         Node::Number(n) => Ok(Value::Number(*n)),
@@ -261,6 +424,7 @@ pub fn interpret(node: &Node, vars: &mut VarContext) -> Result<Value, &'static s
         Node::While(n, v) => interpret_while(n, v, vars),
         Node::IfStmt(n, v) => interpret_if(n, v, vars),
         Node::IfElse(n, v1, v2) => interpret_if_else(n, v1, v2, vars),
+        Node::BlockValue(a) => interpret(a, vars),
         _ => panic!("err"), 
     };
     return val;
