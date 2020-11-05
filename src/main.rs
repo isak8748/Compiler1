@@ -223,20 +223,22 @@ fn test_parse() {
       println!("{:?}", interpret(&BoolExpParser::new().parse("23 % 4 < 345 || 15-3 == 34").unwrap(), &mut c));
       println!("{:?}", interpret(&BoolExpParser::new().parse("24 + -6").unwrap(), &mut c));
       assert!(interpret(&DeclarationParser::new().parse("let a = 0").unwrap(), &mut c).is_ok());
+      let _d = interpret(&IfParser::new().parse("if true {
+        let a = 2;
+        let b = &a;
+        let c = &mut a;
+        let xd = &a;
+        let dddd = &a;
+        a = 6;
+        let d = *xd;
+    }").unwrap(), &mut c);
       let _v = interpret(&IfParser::new().parse("if 4 < 5 {
         let a = 0;
+        let b = &a;
         while a < 10{
             a = a + 1;
         };
     }").unwrap(), &mut c);
-    let _d = interpret(&IfParser::new().parse("if true {
-        let a = 2;
-        let b = &a;
-        let d = &a;
-        let xd = &a;
-        let rrr = &a;
-        let m = &mut a;
-        let c = *m;
-    }").unwrap(), &mut c);
+    
       
   }

@@ -5,11 +5,16 @@ use crate::ast::Node;
 use crate::ast::Opcode;
 
 pub struct FnContext{
-    fn_env: HashMap<String, Node>,
+    fn_env: HashMap<String, Vec<Box<Node>>>,
 }
 
 pub struct VarContext{
     var_env: VecDeque<HashMap<String, VarInfo>>,
+}
+
+struct FnInfo{
+    params: Vec<Box<Node>>,
+    instructions: Vec<Box<Node>>,
 }
 
 #[derive(Clone)]
@@ -55,6 +60,38 @@ impl VarContext{
                 var_info = temp.clone();
                 break;
             }
+        }
+
+        for i in &mut self.var_env{
+            if i.contains_key(id){
+                i.insert(id.clone(), var_info);
+                return;
+            }
+        }
+    }
+
+    fn remove_mut_borrow(&mut self, id: &String){
+        let brws = VecDeque::new();
+        let mut var_info = VarInfo{value: Value::NoValue, borrows: brws, borrow_of: None};
+        let mut mut_found = false;
+
+        for i in &mut self.var_env{
+            if i.contains_key(id){
+                let temp = i.get_mut(id).unwrap();
+                for brw in &mut temp.borrows{
+                    if brw.mutable{
+                        mut_found = true;
+                        temp.borrows.pop_back();
+                        var_info = temp.clone();
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+
+        if !mut_found{
+            return;
         }
 
         for i in &mut self.var_env{
@@ -192,6 +229,10 @@ pub fn interpret_op(node1: &Node, operation: &Opcode, node2: &Node, vars: &mut V
 }
 
 
+pub fn func_definition(fn_name: &String, params: &Vec<Box<Node>>, intstructions: &Vec<Box<Node>>, funcs: &FnContext){
+
+}
+
 //add suppport for all unary operations
 pub fn interpret_unary_op(operation: &Opcode, node: &Node, vars: &mut VarContext) -> Result<Value, &'static str>{
     let value = interpret(node, vars);
@@ -305,6 +346,9 @@ pub fn interpret_let(id: &String, value: &Option<Box<Node>>, vars: &mut VarConte
 pub fn interpret_assign(id: &String, value: &Node, vars: &mut VarContext) -> Result<Value, &'static str>{
     let val = interpret(value, vars);
     vars.update(id, &val.clone().unwrap());
+    println!("UPDATING VALUE AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+    println!("{:?}", &val.clone().unwrap());
+    println!("{:?}", vars.get(id));
     let create_ref = match val.clone().unwrap() {
         Value::RefValue => true,
         _ => false,
@@ -313,7 +357,12 @@ pub fn interpret_assign(id: &String, value: &Node, vars: &mut VarContext) -> Res
         create_reference(id, value, vars);
         return Ok(Value::NoValue);
     }
-    vars.insert(id, &val.unwrap());
+    //vars.insert(id, &val.unwrap());
+    println!("AFTER INSERT");
+    println!("{:?}", vars.get(id));
+    vars.remove_mut_borrow(id);
+    println!("AFTER REMOVE MUT BORROW");
+    println!("{:?}", vars.get(id));
     return Ok(Value::NoValue);
 }
 
@@ -339,6 +388,24 @@ fn create_reference(id: &String, node: &Node, vars: &mut VarContext){
     vars.insert_borrow(id, &ref_name, is_mut);
     //vars.insert(&ref_name, &Value::NoValue);
 
+}
+
+pub fn interpret_write_ref(name: &String, node: &Node, vars: &mut VarContext) -> Result<Value, &'static str>{
+        let var_info = vars.get(name);
+        let id = var_info.unwrap().borrow_of;
+        let value_info = vars.get(&id.clone().unwrap()).unwrap();
+        let top_borrow = value_info.borrows.get(0).unwrap();
+        if top_borrow.name != *name{
+            panic!("mutable reference is not unique");
+        }
+        else if !top_borrow.mutable{
+            panic!("Reference is not mutable");
+        }
+        else{
+            let value = interpret(node, vars).unwrap();
+            vars.update(&id.unwrap(), &value);
+        }
+        return Ok(Value::NoValue);
 }
 
 pub fn interpret_while(condition: &Node, instr: &Vec<Box<Node>>, vars: &mut VarContext)-> Result<Value, &'static str>{
@@ -425,6 +492,7 @@ pub fn interpret(node: &Node, vars: &mut VarContext) -> Result<Value, &'static s
         Node::IfStmt(n, v) => interpret_if(n, v, vars),
         Node::IfElse(n, v1, v2) => interpret_if_else(n, v1, v2, vars),
         Node::BlockValue(a) => interpret(a, vars),
+        Node::Return(o) => interpret_return(o, vars),
         _ => panic!("err"), 
     };
     return val;
