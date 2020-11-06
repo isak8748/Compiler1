@@ -51,8 +51,8 @@ fn test_parse() {
     assert!(ComparisonParser::new().parse("boolname").is_ok());
     assert!(BoolExpParser::new().parse("x == 5 && y < 17 || z <= x").is_ok());
     assert!(TypeSpecParser::new().parse(": i32").is_ok());
-    assert!(FunctionParser::new().parse("fn plus_one() -> i32 {let y = x + 1;}").is_ok());
-    assert!(FunctionParser::new().parse("fn main() {
+    assert!(FunctionParser::new().parse("plus_one() -> i32 {let y = x + 1;}").is_ok());
+    assert!(FunctionParser::new().parse("main() {
         let x = plus_one(5); println(y, x);}").is_ok());
     assert!(ReturnParser::new().parse("return").is_ok());
     assert!(ReturnParser::new().parse("return x % 5").is_ok());
@@ -66,7 +66,7 @@ fn test_parse() {
     } else {
         x && false
     }").is_ok());
-    assert!(FunctionParser::new().parse("fn c(x: bool, y: bool) -> i32 {
+    assert!(FunctionParser::new().parse("c(x: bool, y: bool) -> i32 {
         let mut b: i32 = 0;
         let mut c: i32 = 1;
         while (b < 10) {
@@ -81,13 +81,42 @@ fn test_parse() {
     println!("{:?}", IfParser::new().parse("if x {let a = 5; let b = 3; a + 5}").unwrap());
     println!("{:?}", BoolExpParser::new().parse("!(a && true) || !isTrue(d, s, d,)").unwrap());
     println!("{:?}", BoolExpParser::new().parse("!D && D == !false").unwrap());
-    println!("{:?}", &FunctionParser::new().parse("fn fib(a: bool, d: bool) -> i32 {
+    println!("{:?}", FunctionParser::new().parse("fib(a: bool, d: bool) -> i32 {
         let x = 5;
         let y = &mut x;
         *y = 18;
         return x
     }").unwrap());
-    println!("{:?}", asd());
+    println!("{:?}", ProgramParser::new().parse("fn c(x: bool, y: bool) -> i32 {
+        let mut b: i32 = 0;
+        let mut c: i32 = 1;
+        while (b < 10) {
+            c = c * 2;
+        };
+        c 
+    }
+    fn main (i: i32){
+        c(true, false);
+        return;
+    }    
+    
+    "
+    ));
+    assert!(ProgramParser::new().parse("fn c(x: bool, y: bool) -> i32 {
+        let mut b: i32 = 0;
+        let mut c: i32 = 1;
+        while (b < 10) {
+            c = c * 2;
+        };
+        c 
+    }
+    fn main (i: i32){
+        c(true, false);
+        return;
+    }    
+    
+    "
+    ).is_ok());
     
   }
 
@@ -181,7 +210,7 @@ fn test_parse() {
     assert!(type_check(&ReturnParser::new().parse("return 3 && 14").unwrap(), &mut c).is_err());
     assert!(type_check(&BoolExpParser::new().parse("-5 + 13 % (-A + -12)").unwrap(), &mut c).is_ok());
     assert!(type_check(&BoolExpParser::new().parse("!D && D == !false").unwrap(), &mut c).is_ok());
-    assert!(type_check(&FunctionParser::new().parse("fn fib(a: bool, d: bool) -> i32 {
+    assert!(type_check(&FunctionParser::new().parse("fib(a: bool, d: bool) -> i32 {
         let a = 5; if true {A} else {1234 % 123}}").unwrap(), &mut c).is_ok());
     assert!(type_check(&DeclarationParser::new().parse("let x = 3 + true").unwrap(), &mut c).is_err());
     assert!(type_check(&WhileParser::new().parse("while true {let x = 5; return 12;}").unwrap(), &mut c).is_ok());
@@ -193,14 +222,14 @@ fn test_parse() {
     assert!(type_check(&WhileParser::new().parse("while true {let A = true; let c = &mut A; let b = *c}").unwrap(), &mut c).is_ok());
     assert!(type_check(&WhileParser::new().parse("while true {let A = true; let c = &A; let b = *c}").unwrap(), &mut c).is_ok());
     assert!(type_check(&WhileParser::new().parse("while true {let A: i32 = 5; let c: &i32 = &A; let b = *c}").unwrap(), &mut c).is_ok());
-    assert!(type_check(&FunctionParser::new().parse("fn fib(a: bool, d: bool) -> i32 {
+    assert!(type_check(&FunctionParser::new().parse("fib(a: bool, d: bool) -> i32 {
         let x = 1+4;
         let y = true || false;
         let z = 2345;
         let a: i32 = foo(1 + 4, true || false, z + 1);
         a
     }").unwrap(), &mut c).is_ok());
-    assert!(type_check(&FunctionParser::new().parse("fn fib(a: bool, d: bool) -> i32 {
+    assert!(type_check(&FunctionParser::new().parse("fib(a: bool, d: bool) -> i32 {
         let x = 5;
         let y = &mut x;
         *y = 18;

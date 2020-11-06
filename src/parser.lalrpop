@@ -119,6 +119,14 @@ SemiColon<T>: Vec<T> = {
 
 };
 
+pub Program: Box<Node> = {
+    Funcs => Box::new(Node::Program(<>)),
+};
+
+SepFunctions<T>: Vec<T> = {
+    <v:("fn" <T> )*> => v,
+};
+
 pub FunctionCall: Box<Node> = {
     <name:Id> "(" <args:Arguments> ")" => Box::new(Node::Call(name, args)),
 };
@@ -157,7 +165,7 @@ pub TypeSpec: String = {
 };
 
 pub Function: Box<Node> = {
-    "fn" <funcname:Id> "(" <p:Params> ")" <t:("->" <Id>)?> "{" <body:Body> "}" =>
+    <funcname:Id> "(" <p:Params> ")" <t:("->" <Id>)?> "{" <body:Body> "}" =>
     Box::new(Node::FnDef(funcname, p, t, body)),
 
 };
@@ -175,3 +183,5 @@ Params = Comma<ParamDef>;
 Arguments = Comma<BoolExp>;
 
 Body = SemiColon<Instruction>;
+
+Funcs = SepFunctions<Function>;

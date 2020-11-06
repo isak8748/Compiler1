@@ -35,6 +35,10 @@ impl Types{
 }
 
 
+pub struct FnContext{
+    fn_env: HashMap<String, FnInfo>,
+}
+
 #[allow(dead_code)]
 pub struct Context{
     //var_env: HashMap<String, VarInfo>,

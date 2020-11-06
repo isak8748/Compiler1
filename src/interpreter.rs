@@ -5,7 +5,7 @@ use crate::ast::Node;
 use crate::ast::Opcode;
 
 pub struct FnContext{
-    fn_env: HashMap<String, Vec<Box<Node>>>,
+    fn_env: HashMap<String, FnInfo>,
 }
 
 pub struct VarContext{
@@ -229,8 +229,42 @@ pub fn interpret_op(node1: &Node, operation: &Opcode, node2: &Node, vars: &mut V
 }
 
 
-pub fn func_definition(fn_name: &String, params: &Vec<Box<Node>>, intstructions: &Vec<Box<Node>>, funcs: &FnContext){
+pub fn func_definition(fn_name: &String, _params: &Vec<Box<Node>>, _instructions: &Vec<Box<Node>>, funcs: &mut FnContext){
+    let fn_info = FnInfo {params: _params.clone(), instructions: _instructions.clone()};
+    funcs.fn_env.insert(fn_name.clone(), fn_info);
+}
 
+fn get_param_name(node: &Node) -> String{
+    let s = match node{
+        Node::ParamDef(name, typespec) => name,
+        _ => panic!("called on params only"),
+    };
+    return s.clone();
+}
+
+
+pub fn interpret_call(func_name: &String, args: &Vec<Box<Node>>, funcs: &mut FnContext, vars: &mut VarContext) 
+    -> Result<Value, &'static str>{
+    let mut values = Vec::new();
+    for arg in args{
+        values.push(interpret(arg, vars).unwrap());
+    }
+
+    let fn_info = funcs.fn_env.get(func_name).unwrap();
+    let new_var_env = VecDeque::new();
+    let mut new_vars = VarContext{var_env: new_var_env};
+    new_vars.add_scope(); //This will be the top scope were references can point
+    new_vars.add_scope(); //Top scope of the function
+    let mut i = 0;
+    for arg in args{     //In the new context the parameter name and the argument values are inserted together
+        let param_name = get_param_name(&fn_info.params[i]);
+        new_vars.insert(&param_name, &values[i]);
+        i += 1;
+    }
+    for instr in &fn_info.instructions{
+        let _x = interpret(instr, &mut new_vars);
+    }
+    return Err("TODO");
 }
 
 //add suppport for all unary operations

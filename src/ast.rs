@@ -2,6 +2,7 @@ use std::fmt;
 
 #[derive(Debug, Clone)]
 pub enum Node {
+    Program(Vec<Box<Node>>),
     Number(i32),
     ID(String),
     //String describes the type
