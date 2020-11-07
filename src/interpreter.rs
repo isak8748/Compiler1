@@ -4,6 +4,9 @@ use std::collections::VecDeque;
 use crate::ast::Node;
 use crate::ast::Opcode;
 
+//TODO: IF-ELSE should return a value 
+
+#[derive(Clone)]
 pub struct FnContext{
     fn_env: HashMap<String, FnInfo>,
 }
@@ -12,6 +15,7 @@ pub struct VarContext{
     var_env: VecDeque<HashMap<String, VarInfo>>,
 }
 
+#[derive(Clone)]
 struct FnInfo{
     params: Vec<Box<Node>>,
     instructions: Vec<Box<Node>>,
@@ -164,9 +168,15 @@ pub fn interp_context() -> VarContext{
     return c;
 }
 
-pub fn interpret_op(node1: &Node, operation: &Opcode, node2: &Node, vars: &mut VarContext) -> Result<Value, &'static str>{
-    let left = interpret(node1, vars);
-    let right = interpret(node2, vars);
+pub fn interp_fn_context() -> FnContext{
+    let map = HashMap::new();
+    let f = FnContext {fn_env: map};
+    return f;
+}
+
+pub fn interpret_op(node1: &Node, operation: &Opcode, node2: &Node, vars: &mut VarContext, funcs: &mut FnContext) -> Result<Value, &'static str>{
+    let left = interpret(node1, vars, funcs);
+    let right = interpret(node2, vars, funcs);
     let ret;
 
     if left.is_err() || right.is_err(){
@@ -264,10 +274,10 @@ pub fn interpret_call(func_name: &String, args: &Vec<Box<Node>>, funcs: &mut FnC
     -> Result<Value, &'static str>{
     let mut values = Vec::new();
     for arg in args{
-        values.push(interpret(arg, vars).unwrap());
+        values.push(interpret(arg, vars, funcs).unwrap());
     }
 
-    let fn_info = funcs.fn_env.get(func_name).unwrap();
+    let fn_info = funcs.fn_env.get_mut(func_name).unwrap().clone();
     let new_var_env = VecDeque::new();
     let mut new_vars = VarContext{var_env: new_var_env};
     new_vars.add_scope(); //This will be the top scope were references can point
@@ -281,12 +291,12 @@ pub fn interpret_call(func_name: &String, args: &Vec<Box<Node>>, funcs: &mut FnC
     let mut ret = Ok(Value::NoValue);
     let mut j = 0;
     for instr in &fn_info.instructions{
-        let x = interpret(instr, &mut new_vars); //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@2
+        let x = interpret(instr, &mut new_vars, funcs); //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@2
         match &**instr{
-            Node::Return(_o) => ret = interpret(instr, &mut new_vars),
-            Node::BlockValue(_v) => ret = interpret(instr, &mut new_vars),
+            Node::Return(_o) => ret = interpret(instr, &mut new_vars, funcs),
+            Node::BlockValue(_v) => ret = interpret(instr, &mut new_vars, funcs),
             Node::IfElse(_a, _b, _c) => if j == fn_info.instructions.len()-1 {
-                ret = interpret(instr, &mut new_vars);
+                ret = interpret(instr, &mut new_vars, funcs);
             },
                 _ => (),
         }
@@ -296,8 +306,8 @@ pub fn interpret_call(func_name: &String, args: &Vec<Box<Node>>, funcs: &mut FnC
 }
 
 //add suppport for all unary operations
-pub fn interpret_unary_op(operation: &Opcode, node: &Node, vars: &mut VarContext) -> Result<Value, &'static str>{
-    let value = interpret(node, vars);
+pub fn interpret_unary_op(operation: &Opcode, node: &Node, vars: &mut VarContext, funcs: &mut FnContext) -> Result<Value, &'static str>{
+    let value = interpret(node, vars, funcs);
     let number = match operation{
         Opcode::UnarySub => true,
         _ => false,
@@ -383,9 +393,9 @@ pub fn interpret_unary_op(operation: &Opcode, node: &Node, vars: &mut VarContext
     return Ok(Value::RefValue); //If we are creating a reference this will signal to interpret_let or interpret_assign to handle it
 }
 
-pub fn interpret_let(id: &String, value: &Option<Box<Node>>, vars: &mut VarContext) -> Result<Value, &'static str>{
+pub fn interpret_let(id: &String, value: &Option<Box<Node>>, vars: &mut VarContext, funcs: &mut FnContext) -> Result<Value, &'static str>{
     let val = match value{
-        Some(n) => interpret(n, vars),
+        Some(n) => interpret(n, vars, funcs),
         None => Ok(Value::NoValue),
     };
 
@@ -394,15 +404,15 @@ pub fn interpret_let(id: &String, value: &Option<Box<Node>>, vars: &mut VarConte
         _ => false,
     };
     if create_ref{
-        create_reference(id, &value.as_ref().unwrap(), vars);
+        create_reference(id, &value.as_ref().unwrap(), vars, funcs);
         return Ok(Value::NoValue);
     }
     vars.insert(id, &val.unwrap());
     return Ok(Value::NoValue);
 }
 
-pub fn interpret_assign(id: &String, value: &Node, vars: &mut VarContext) -> Result<Value, &'static str>{
-    let val = interpret(value, vars);
+pub fn interpret_assign(id: &String, value: &Node, vars: &mut VarContext, funcs: &mut FnContext) -> Result<Value, &'static str>{
+    let val = interpret(value, vars, funcs);
     vars.update(id, &val.clone().unwrap());
     println!("UPDATING VALUE AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
     println!("{:?}", &val.clone().unwrap());
@@ -412,7 +422,7 @@ pub fn interpret_assign(id: &String, value: &Node, vars: &mut VarContext) -> Res
         _ => false,
     };
     if create_ref{
-        create_reference(id, value, vars);
+        create_reference(id, value, vars, funcs);
         return Ok(Value::NoValue);
     }
     //vars.insert(id, &val.unwrap());
@@ -424,7 +434,7 @@ pub fn interpret_assign(id: &String, value: &Node, vars: &mut VarContext) -> Res
     return Ok(Value::NoValue);
 }
 
-fn create_reference(id: &String, node: &Node, vars: &mut VarContext){
+fn create_reference(id: &String, node: &Node, vars: &mut VarContext, funcs: &mut FnContext){
     let op = match node{
         Node::UnaryOp(o, _n) => o,
         _ => panic!("unreachable"),
@@ -448,7 +458,7 @@ fn create_reference(id: &String, node: &Node, vars: &mut VarContext){
 
 }
 
-pub fn interpret_write_ref(name: &String, node: &Node, vars: &mut VarContext) -> Result<Value, &'static str>{
+pub fn interpret_write_ref(name: &String, node: &Node, vars: &mut VarContext, funcs: &mut FnContext) -> Result<Value, &'static str>{
         let var_info = vars.get(name);
         let id = var_info.unwrap().borrow_of;
         let value_info = vars.get(&id.clone().unwrap()).unwrap();
@@ -460,15 +470,15 @@ pub fn interpret_write_ref(name: &String, node: &Node, vars: &mut VarContext) ->
             panic!("Reference is not mutable");
         }
         else{
-            let value = interpret(node, vars).unwrap();
+            let value = interpret(node, vars, funcs).unwrap();
             vars.update(&id.unwrap(), &value);
         }
         return Ok(Value::NoValue);
 }
 
-pub fn interpret_while(condition: &Node, instr: &Vec<Box<Node>>, vars: &mut VarContext)-> Result<Value, &'static str>{
+pub fn interpret_while(condition: &Node, instr: &Vec<Box<Node>>, vars: &mut VarContext, funcs: &mut FnContext)-> Result<Value, &'static str>{
     loop{
-        let while_condition = interpret(condition, vars);
+        let while_condition = interpret(condition, vars, funcs);
         let condition_value = match while_condition.unwrap(){
             Value::Boolean(b) => b,
             _ => panic!("while condition did not evaluate to boolean"),
@@ -477,7 +487,7 @@ pub fn interpret_while(condition: &Node, instr: &Vec<Box<Node>>, vars: &mut VarC
             println!("true");
             vars.add_scope();
             for n in instr{
-                let _r = interpret(n, vars);
+                let _r = interpret(n, vars, funcs);
             }
             vars.remove_scope();
         }
@@ -488,8 +498,8 @@ pub fn interpret_while(condition: &Node, instr: &Vec<Box<Node>>, vars: &mut VarC
     return Ok(Value::NoValue);
 }
 
-pub fn interpret_if(condition: &Node, instr: &Vec<Box<Node>>, vars: &mut VarContext)-> Result<Value, &'static str>{
-    let if_condition = interpret(condition, vars);
+pub fn interpret_if(condition: &Node, instr: &Vec<Box<Node>>, vars: &mut VarContext, funcs: &mut FnContext)-> Result<Value, &'static str>{
+    let if_condition = interpret(condition, vars, funcs);
         let condition_value = match if_condition.unwrap(){
             Value::Boolean(b) => b,
             _ => panic!("while condition did not evaluate to boolean"),
@@ -497,16 +507,16 @@ pub fn interpret_if(condition: &Node, instr: &Vec<Box<Node>>, vars: &mut VarCont
         if condition_value{
             vars.add_scope();
             for n in instr{
-                let _r = interpret(n, vars);
+                let _r = interpret(n, vars, funcs);
             }
             vars.remove_scope();
         }
         return Ok(Value::NoValue);
 }
 
-pub fn interpret_if_else(condition: &Node, if_instr: &Vec<Box<Node>>, else_instr: &Vec<Box<Node>>, vars: &mut VarContext)
+pub fn interpret_if_else(condition: &Node, if_instr: &Vec<Box<Node>>, else_instr: &Vec<Box<Node>>, vars: &mut VarContext, funcs: &mut FnContext)
     -> Result<Value, &'static str>{
-        let if_condition = interpret(condition, vars);
+        let if_condition = interpret(condition, vars, funcs);
         let condition_value = match if_condition.unwrap(){
             Value::Boolean(b) => b,
             _ => panic!("while condition did not evaluate to boolean"),
@@ -514,43 +524,45 @@ pub fn interpret_if_else(condition: &Node, if_instr: &Vec<Box<Node>>, else_instr
         if condition_value{
             vars.add_scope();
             for n in if_instr{
-                let _r = interpret(n, vars);
+                let _r = interpret(n, vars, funcs);
             }
             vars.remove_scope();
         }
         else{
             vars.add_scope();
             for n in else_instr{
-                let _r = interpret(n, vars);
+                let _r = interpret(n, vars, funcs);
             }
             vars.remove_scope();
         }
         return Ok(Value::NoValue); 
     }
 
-pub fn interpret_return(node: &Option<Box<Node>>, vars: &mut VarContext) -> Result<Value, &'static str>{
+pub fn interpret_return(node: &Option<Box<Node>>, vars: &mut VarContext, funcs: &mut FnContext) -> Result<Value, &'static str>{
     let ret = match node{
-        Some(v) => interpret(&v, vars),
+        Some(v) => interpret(&v, vars, funcs),
         None => Ok(Value::NoValue),
     };
     ret
 }
 
-pub fn interpret(node: &Node, vars: &mut VarContext) -> Result<Value, &'static str>{
+pub fn interpret(node: &Node, vars: &mut VarContext, funcs: &mut FnContext) -> Result<Value, &'static str>{
     let val = match node{
         Node::Number(n) => Ok(Value::Number(*n)),
         Node::Boolean(b) => Ok(Value::Boolean(*b)),
         Node::ID(s) => Ok(vars.get(s).unwrap().value),
-        Node::Op(n1, o, n2) => interpret_op(n1, o, n2, vars),
-        Node::UnaryOp(o, n) => interpret_unary_op(o, n, vars),
+        Node::Op(n1, o, n2) => interpret_op(n1, o, n2, vars, funcs),
+        Node::UnaryOp(o, n) => interpret_unary_op(o, n, vars, funcs),
         Node::Declaration(name, _b, _typedef, value) 
-        => interpret_let(name, value, vars),
-        Node::Assign(s, n) => interpret_assign(s, n, vars),
-        Node::While(n, v) => interpret_while(n, v, vars),
-        Node::IfStmt(n, v) => interpret_if(n, v, vars),
-        Node::IfElse(n, v1, v2) => interpret_if_else(n, v1, v2, vars),
-        Node::BlockValue(a) => interpret(a, vars),
-        Node::Return(o) => interpret_return(o, vars),
+        => interpret_let(name, value, vars, funcs),
+        Node::Assign(s, n) => interpret_assign(s, n, vars, funcs),
+        Node::While(n, v) => interpret_while(n, v, vars, funcs),
+        Node::IfStmt(n, v) => interpret_if(n, v, vars, funcs),
+        Node::IfElse(n, v1, v2) => interpret_if_else(n, v1, v2, vars, funcs),
+        Node::BlockValue(a) => interpret(a, vars, funcs),
+        Node::Return(o) => interpret_return(o, vars, funcs),
+        Node::Call(s, v) => interpret_call(s, v, funcs, vars),
+        Node::Program(v) => interpret_program(v),
         _ => panic!("err"), 
     };
     return val;

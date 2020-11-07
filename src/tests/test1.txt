@@ -1,0 +1,9 @@
+fn math(x: i32) -> i32{
+	let mut y = x + 5;
+	y
+}
+
+fn main(){
+	let z = math(15);
+	return;
+}

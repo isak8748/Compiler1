@@ -1,0 +1,25 @@
+fn math(x: i32, y: i32) -> i32{
+	let z1 = x + y;
+	let z2 = x - y;
+	let z3 = x * y;
+	let z4 = x / y;
+	let z5 = x % y;
+	let b1 = x < 5;
+	let b2 = x <= 5;
+	let b3 = x > 5;
+	let b4 = x >= 5;
+	let b5 = x == 5;
+	let b6 = x != 5;
+	let ret;
+	if b4{
+		ret =  z3;
+	}
+	else{
+		ret = z1;
+	};
+	ret
+}
+
+fn main() -> i32{
+	return math(6, 7);
+}

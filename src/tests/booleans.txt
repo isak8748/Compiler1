@@ -1,0 +1,25 @@
+fn booleans(a: bool, b: bool, x: i32) -> bool{
+	let b1 = a && b;
+	let b2 = a || b;
+	let b3 = a == b;
+	let b4 = a != b;
+	let b5 = !a;
+	let b6 = x < 5;
+	let b7 = x <= 5;
+	let b8 = x > 5;
+	let b9 = x >= 5;
+	let b10 = x == 5;
+	let b11 = x != 5;
+	return b2 && b10;
+}
+
+fn main() -> bool{
+	let ret;
+	if booleans(true, false, 5){
+		ret = true;
+	}
+	else{
+		ret = false;
+	};
+	return ret;
+}

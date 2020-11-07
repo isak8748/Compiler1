@@ -1,0 +1,13 @@
+fn loop(x: i32) -> i32{
+	let mut c = 0;
+	while c < 10{
+		x = x - 1;
+		c = c + 1;
+	};
+	x
+}
+
+fn main() -> i32 {
+	let b = 25;
+	loop(b)
+}

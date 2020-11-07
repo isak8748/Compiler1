@@ -1,0 +1,19 @@
+fn cond(x: i32) -> i32{
+	let ret;
+	if x >= 15{
+		ret = 15;
+	}
+	else{
+		ret = 0;
+	};
+	return ret;
+}
+
+fn main() -> i32{
+	let num = 17;
+	let mut ret: i32 = -680;
+	if cond(num) == 15 {
+		ret = 5000;
+	};
+	ret	
+}

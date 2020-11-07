@@ -1,0 +1,9 @@
+fn square(y: i32) -> i32{
+	let ret = y*y;
+	ret
+}
+
+fn main() -> i32{
+	let num = 5;
+	square(5)
+}

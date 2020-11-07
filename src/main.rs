@@ -10,11 +10,12 @@ pub mod interpreter;
 
 use crate::ast::{Opcode, Node};
 use crate::typechecker::{type_check_op, init_context, init_funcs, type_check, type_check_program};
-use crate::interpreter::{interpret, interp_context};
+use crate::interpreter::{interpret, interp_context, interp_fn_context};
 use std::collections::HashMap;
+use std::{env, fs};
 
 
-fn main() {
+fn main(){
     test_string();
     println!("{}", ExprOpParser::new().parse("+").unwrap());
     println!("{}", ExprParser::new().parse("5+6*7").unwrap());
@@ -25,7 +26,26 @@ fn main() {
     test_parse();
     test_types();
     test_interp();
-    test_hashmap();    
+    test_hashmap();
+    let mut dir = env::current_dir().unwrap();
+    println!("{:?}", dir);
+    dir.pop();
+    dir.pop();
+    println!("{:?}", dir);
+    dir.push("src");
+    dir.push("tests");
+    dir.push("while.txt");
+    let s = fs::read_to_string(dir).unwrap();
+    let parse = ProgramParser::new().parse(&s);
+    assert!(parse.is_ok());
+    let mut c = init_context();
+    let mut f = init_funcs();
+    println!("{:?}", type_check(&parse.clone().unwrap(), &mut c, &mut f));
+    let mut c = interp_context();
+    let mut f = interp_fn_context();
+    println!("{:?}", interpret(&parse.unwrap(), &mut c, &mut f));
+
+
 }
 
 
@@ -275,14 +295,15 @@ fn test_parse() {
 
   fn test_interp(){
       let mut c = interp_context();
-      assert!(interpret(&BoolExpParser::new().parse("1+2").unwrap(), &mut c).is_ok());
-      println!("{:?}", interpret(&BoolExpParser::new().parse("1+2").unwrap(), &mut c));
-      assert!(interpret(&BoolExpParser::new().parse("true == false").unwrap(), &mut c).is_ok());
-      println!("{:?}", interpret(&BoolExpParser::new().parse("true == false").unwrap(), &mut c));
-      assert!(interpret(&BoolExpParser::new().parse("23 % 4 < 345 || 15-3 == 34").unwrap(), &mut c).is_ok());
-      println!("{:?}", interpret(&BoolExpParser::new().parse("23 % 4 < 345 || 15-3 == 34").unwrap(), &mut c));
-      println!("{:?}", interpret(&BoolExpParser::new().parse("24 + -6").unwrap(), &mut c));
-      assert!(interpret(&DeclarationParser::new().parse("let a = 0").unwrap(), &mut c).is_ok());
+      let mut funcs = interp_fn_context();
+      assert!(interpret(&BoolExpParser::new().parse("1+2").unwrap(), &mut c, &mut funcs).is_ok());
+      println!("{:?}", interpret(&BoolExpParser::new().parse("1+2").unwrap(), &mut c, &mut funcs));
+      assert!(interpret(&BoolExpParser::new().parse("true == false").unwrap(), &mut c, &mut funcs).is_ok());
+      println!("{:?}", interpret(&BoolExpParser::new().parse("true == false").unwrap(), &mut c, &mut funcs));
+      assert!(interpret(&BoolExpParser::new().parse("23 % 4 < 345 || 15-3 == 34").unwrap(), &mut c, &mut funcs).is_ok());
+      println!("{:?}", interpret(&BoolExpParser::new().parse("23 % 4 < 345 || 15-3 == 34").unwrap(), &mut c, &mut funcs));
+      println!("{:?}", interpret(&BoolExpParser::new().parse("24 + -6").unwrap(), &mut c, &mut funcs));
+      assert!(interpret(&DeclarationParser::new().parse("let a = 0").unwrap(), &mut c, &mut funcs).is_ok());
       let _d = interpret(&IfParser::new().parse("if true {
         let a = 2;
         let b = &a;
@@ -291,14 +312,14 @@ fn test_parse() {
         let dddd = &a;
         a = 6;
         let d = *xd;
-    }").unwrap(), &mut c);
+    }").unwrap(), &mut c, &mut funcs);
       let _v = interpret(&IfParser::new().parse("if 4 < 5 {
         let a = 0;
         let b = &a;
         while a < 10{
             a = a + 1;
         };
-    }").unwrap(), &mut c);
+    }").unwrap(), &mut c, &mut funcs);
     
       
   }

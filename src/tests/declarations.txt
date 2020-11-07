@@ -1,0 +1,15 @@
+fn declarations() -> i32{
+	let a = 5;
+	let b: i32 = 13;
+	let mut h = 15;
+	let c;
+	let v: bool;
+	v = true;
+	c = 123;
+	h = 1;
+	c + h
+}
+
+fn main() -> i32{
+	declarations()
+}
