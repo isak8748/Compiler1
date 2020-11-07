@@ -228,6 +228,23 @@ pub fn interpret_op(node1: &Node, operation: &Opcode, node2: &Node, vars: &mut V
     return Ok(ret);
 }
 
+pub fn interpret_program(functions: &Vec<Box<Node>>) -> Result<Value, &'static str>{
+    let map = HashMap::new();
+    let mut funcs = FnContext{fn_env: map};
+    for f in functions{
+        match &**f{
+            Node::FnDef(id, params, _ret, instr) => func_definition(id, params, instr, &mut funcs), //Inserting info in the FnContext
+            _ => panic!("invalid program"), 
+        }
+    }
+    let a_var_env = VecDeque::new();
+    let mut vars = VarContext{var_env: a_var_env}; //Setting up an empty context
+    let v = Vec::new();
+    let s: String = "main".to_string();
+    let x = interpret_call(&s, &v, &mut funcs, &mut vars);
+    return x;
+}
+
 
 pub fn func_definition(fn_name: &String, _params: &Vec<Box<Node>>, _instructions: &Vec<Box<Node>>, funcs: &mut FnContext){
     let fn_info = FnInfo {params: _params.clone(), instructions: _instructions.clone()};
@@ -236,7 +253,7 @@ pub fn func_definition(fn_name: &String, _params: &Vec<Box<Node>>, _instructions
 
 fn get_param_name(node: &Node) -> String{
     let s = match node{
-        Node::ParamDef(name, typespec) => name,
+        Node::ParamDef(name, _typespec) => name,
         _ => panic!("called on params only"),
     };
     return s.clone();
@@ -261,10 +278,21 @@ pub fn interpret_call(func_name: &String, args: &Vec<Box<Node>>, funcs: &mut FnC
         new_vars.insert(&param_name, &values[i]);
         i += 1;
     }
+    let mut ret = Ok(Value::NoValue);
+    let mut j = 0;
     for instr in &fn_info.instructions{
-        let _x = interpret(instr, &mut new_vars);
+        let x = interpret(instr, &mut new_vars); //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@2
+        match &**instr{
+            Node::Return(_o) => ret = interpret(instr, &mut new_vars),
+            Node::BlockValue(_v) => ret = interpret(instr, &mut new_vars),
+            Node::IfElse(_a, _b, _c) => if j == fn_info.instructions.len()-1 {
+                ret = interpret(instr, &mut new_vars);
+            },
+                _ => (),
+        }
+        j += 1;
     }
-    return Err("TODO");
+    return ret; //should return the actual returned value of the call
 }
 
 //add suppport for all unary operations
@@ -352,11 +380,7 @@ pub fn interpret_unary_op(operation: &Opcode, node: &Node, vars: &mut VarContext
         panic!("Reference not found");
 
     }
-
-
-
     return Ok(Value::RefValue); //If we are creating a reference this will signal to interpret_let or interpret_assign to handle it
-
 }
 
 pub fn interpret_let(id: &String, value: &Option<Box<Node>>, vars: &mut VarContext) -> Result<Value, &'static str>{

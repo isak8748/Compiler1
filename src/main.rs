@@ -9,7 +9,7 @@ pub mod typechecker;
 pub mod interpreter;
 
 use crate::ast::{Opcode, Node};
-use crate::typechecker::{type_check_op, init_context, type_check};
+use crate::typechecker::{type_check_op, init_context, init_funcs, type_check, type_check_program};
 use crate::interpreter::{interpret, interp_context};
 use std::collections::HashMap;
 
@@ -172,73 +172,104 @@ fn test_parse() {
 
   fn test_types(){
     let mut c = init_context();
-    assert!(type_check_op(&Node::Number(14), &Opcode::Add, &Node::Number(13), &mut c).is_ok());
+    let mut funcs = init_funcs();
+    assert!(type_check_op(&Node::Number(14), &Opcode::Add, &Node::Number(13), &mut c, &mut funcs).is_ok());
     let n1 = Node::Op(Box::new(Node::Number(13)), Opcode::Add, Box::new(Node::Number(13)));
     let n2 = Node::Op(Box::new(Node::Number(15)), Opcode::Sub, Box::new(Node::Number(14)));
-    assert!(type_check_op(&n1, &Opcode::Add, &n2, &mut c).is_ok());
-    assert!(type_check_op(&n1, &Opcode::Mod, &Node::ID("A".to_string()), &mut c).is_ok());
-    assert!(type_check_op(&n1, &Opcode::Mod, &Node::ID("D".to_string()), &mut c).is_err());
+    assert!(type_check_op(&n1, &Opcode::Add, &n2, &mut c, &mut funcs).is_ok());
+    assert!(type_check_op(&n1, &Opcode::Mod, &Node::ID("A".to_string()), &mut c, &mut funcs).is_ok());
+    assert!(type_check_op(&n1, &Opcode::Mod, &Node::ID("D".to_string()), &mut c, &mut funcs).is_err());
     let n3 = Box::new(Node::Op(Box::new(Node::Number(13)), Opcode::Neq, Box::new(Node::Number(56))));
     let n4 = Node::Op(n3, Opcode::And, Box::new(Node::Boolean(true)));
-    assert!(type_check(&n4, &mut c).is_ok());
-    assert!(type_check_op(&n1, &Opcode::And, &n2, &mut c).is_err());
-    assert!(type_check(&BoolExpParser::new().parse("D == false && 14 < 17 || A >= B").unwrap(), &mut c).is_ok());
+    assert!(type_check(&n4, &mut c, &mut funcs).is_ok());
+    assert!(type_check_op(&n1, &Opcode::And, &n2, &mut c, &mut funcs).is_err());
+    assert!(type_check(&BoolExpParser::new().parse("D == false && 14 < 17 || A >= B").unwrap(), &mut c, &mut funcs).is_ok());
     assert_eq!(bool_op(), false);
-    assert!(type_check(&DeclarationParser::new().parse("let x").unwrap(), &mut c).is_ok());
-    assert!(type_check(&DeclarationParser::new().parse("let asd: i32").unwrap(), &mut c).is_ok());
-    assert!(type_check(&DeclarationParser::new().parse("let y = 17").unwrap(), &mut c).is_ok());
-    assert!(type_check(&DeclarationParser::new().parse("let x: bool = true").unwrap(), &mut c).is_ok());
-    assert!(type_check(&DeclarationParser::new().parse("let mut x: i32 = 34 + A").unwrap(), &mut c).is_ok());
-    assert!(type_check(&StmtParser::new().parse("A = 5").unwrap(), &mut c).is_ok());
-    assert!(type_check(&StmtParser::new().parse("A = true").unwrap(), &mut c).is_err());
-    assert!(type_check(&StmtParser::new().parse("D = false").unwrap(), &mut c).is_ok());
-    assert!(type_check(&StmtParser::new().parse("A = A % 123 + 45 * 3").unwrap(), &mut c).is_ok());
-    assert!(type_check(&WhileParser::new().parse("while true {let x = 5}").unwrap(), &mut c).is_ok());
-    assert!(type_check(&WhileParser::new().parse("while D && 13 <= A || 456 != B {let x = 5}").unwrap(), &mut c).is_ok());
-    assert!(type_check(&WhileParser::new().parse("while A % 4 + true {let x = 5}").unwrap(), &mut c).is_err());
-    assert!(type_check(&WhileParser::new().parse("while A % 4 * 32 {let x = 5}").unwrap(), &mut c).is_err());
-    println!("{:?}", type_check(&IfParser::new().parse("if true { let x = 5; 1234 * 12}").unwrap(), &mut c));
-    println!("{:?}", type_check(&IfParser::new().parse("if true { let x = 5; let a = 7;}").unwrap(), &mut c));
-    println!("{:?}", type_check(&IfElseParser::new().parse("if true{5} else {6}").unwrap(), &mut c));
-    assert!(type_check(&IfElseParser::new().parse("if true{5} else {6}").unwrap(), &mut c).is_ok());
-    assert!(type_check(&IfElseParser::new().parse("if false {13} else {true}").unwrap(), &mut c).is_err());
-    assert!(type_check(&IfElseParser::new().parse("if D || true {let x = 3; 14 %3} else {let x = 3; 67-1}").unwrap(), &mut c).is_ok());
-    assert!(type_check(&IfElseParser::new().parse("if D || true {let x = 3 + true; 14 %3} else {let x = 4; D}").unwrap(), &mut c).is_err());
-    assert!(type_check(&DeclarationParser::new().parse("let mut x: i32 = if D {13%10} else{A}").unwrap(), &mut c).is_ok());
-    assert!(type_check(&ReturnParser::new().parse("return").unwrap(), &mut c).is_ok());
-    assert!(type_check(&ReturnParser::new().parse("return A + 12313 * 123").unwrap(), &mut c).is_ok());
-    assert!(type_check(&ReturnParser::new().parse("return 3 && 14").unwrap(), &mut c).is_err());
-    assert!(type_check(&BoolExpParser::new().parse("-5 + 13 % (-A + -12)").unwrap(), &mut c).is_ok());
-    assert!(type_check(&BoolExpParser::new().parse("!D && D == !false").unwrap(), &mut c).is_ok());
+    assert!(type_check(&DeclarationParser::new().parse("let x").unwrap(), &mut c, &mut funcs).is_ok());
+    assert!(type_check(&DeclarationParser::new().parse("let asd: i32").unwrap(), &mut c, &mut funcs).is_ok());
+    assert!(type_check(&DeclarationParser::new().parse("let y = 17").unwrap(), &mut c, &mut funcs).is_ok());
+    assert!(type_check(&DeclarationParser::new().parse("let x: bool = true").unwrap(), &mut c, &mut funcs).is_ok());
+    assert!(type_check(&DeclarationParser::new().parse("let mut x: i32 = 34 + A").unwrap(), &mut c, &mut funcs).is_ok());
+    assert!(type_check(&StmtParser::new().parse("A = 5").unwrap(), &mut c, &mut funcs).is_ok());
+    assert!(type_check(&StmtParser::new().parse("A = true").unwrap(), &mut c, &mut funcs).is_err());
+    assert!(type_check(&StmtParser::new().parse("D = false").unwrap(), &mut c, &mut funcs).is_ok());
+    assert!(type_check(&StmtParser::new().parse("A = A % 123 + 45 * 3").unwrap(), &mut c, &mut funcs).is_ok());
+    assert!(type_check(&WhileParser::new().parse("while true {let x = 5}").unwrap(), &mut c, &mut funcs).is_ok());
+    assert!(type_check(&WhileParser::new().parse("while D && 13 <= A || 456 != B {let x = 5}").unwrap(), &mut c, &mut funcs).is_ok());
+    assert!(type_check(&WhileParser::new().parse("while A % 4 + true {let x = 5}").unwrap(), &mut c, &mut funcs).is_err());
+    assert!(type_check(&WhileParser::new().parse("while A % 4 * 32 {let x = 5}").unwrap(), &mut c, &mut funcs).is_err());
+    println!("{:?}", type_check(&IfParser::new().parse("if true { let x = 5; 1234 * 12}").unwrap(), &mut c, &mut funcs));
+    println!("{:?}", type_check(&IfParser::new().parse("if true { let x = 5; let a = 7;}").unwrap(), &mut c, &mut funcs));
+    println!("{:?}", type_check(&IfElseParser::new().parse("if true{5} else {6}").unwrap(), &mut c, &mut funcs));
+    assert!(type_check(&IfElseParser::new().parse("if true{5} else {6}").unwrap(), &mut c, &mut funcs).is_ok());
+    assert!(type_check(&IfElseParser::new().parse("if false {13} else {true}").unwrap(), &mut c, &mut funcs).is_err());
+    assert!(type_check(&IfElseParser::new().parse("if D || true {let x = 3; 14 %3} else {let x = 3; 67-1}").unwrap(), &mut c, &mut funcs).is_ok());
+    assert!(type_check(&IfElseParser::new().parse("if D || true {let x = 3 + true; 14 %3} else {let x = 4; D}").unwrap(), &mut c, &mut funcs).is_err());
+    assert!(type_check(&DeclarationParser::new().parse("let mut x: i32 = if D {13%10} else{A}").unwrap(), &mut c, &mut funcs).is_ok());
+    assert!(type_check(&ReturnParser::new().parse("return").unwrap(), &mut c, &mut funcs).is_ok());
+    assert!(type_check(&ReturnParser::new().parse("return A + 12313 * 123").unwrap(), &mut c, &mut funcs).is_ok());
+    assert!(type_check(&ReturnParser::new().parse("return 3 && 14").unwrap(), &mut c, &mut funcs).is_err());
+    assert!(type_check(&BoolExpParser::new().parse("-5 + 13 % (-A + -12)").unwrap(), &mut c, &mut funcs).is_ok());
+    assert!(type_check(&BoolExpParser::new().parse("!D && D == !false").unwrap(), &mut c, &mut funcs).is_ok());
     assert!(type_check(&FunctionParser::new().parse("fib(a: bool, d: bool) -> i32 {
-        let a = 5; if true {A} else {1234 % 123}}").unwrap(), &mut c).is_ok());
-    assert!(type_check(&DeclarationParser::new().parse("let x = 3 + true").unwrap(), &mut c).is_err());
-    assert!(type_check(&WhileParser::new().parse("while true {let x = 5; return 12;}").unwrap(), &mut c).is_ok());
-    assert!(type_check(&WhileParser::new().parse("while D && 13 <= A || 456 != B {let A = true; return A || false;}").unwrap(), &mut c).is_ok());
-    assert!(type_check(&WhileParser::new().parse("while D && 13 <= A || 456 != B {let A = true; if A && false {return A || true}}").unwrap(), &mut c).is_ok());
-    assert!(type_check(&WhileParser::new().parse("while true {let A = true; let c = &A}").unwrap(), &mut c).is_ok());
-    assert!(type_check(&WhileParser::new().parse("while true {let A = true; let c = *A}").unwrap(), &mut c).is_err());
-    assert!(type_check(&WhileParser::new().parse("while true {let A = true; let c = &A; let b = *c}").unwrap(), &mut c).is_ok());
-    assert!(type_check(&WhileParser::new().parse("while true {let A = true; let c = &mut A; let b = *c}").unwrap(), &mut c).is_ok());
-    assert!(type_check(&WhileParser::new().parse("while true {let A = true; let c = &A; let b = *c}").unwrap(), &mut c).is_ok());
-    assert!(type_check(&WhileParser::new().parse("while true {let A: i32 = 5; let c: &i32 = &A; let b = *c}").unwrap(), &mut c).is_ok());
+        let a = 5; if true {6123} else {1234 % 123}}").unwrap(), &mut c, &mut funcs).is_ok());
+    assert!(type_check(&DeclarationParser::new().parse("let x = 3 + true").unwrap(), &mut c, &mut funcs).is_err());
+    assert!(type_check(&WhileParser::new().parse("while true {let x = 5; return 12;}").unwrap(), &mut c, &mut funcs).is_ok());
+    assert!(type_check(&WhileParser::new().parse("while D && 13 <= A || 456 != B {let A = true; return A || false;}").unwrap(), &mut c, &mut funcs).is_ok());
+    assert!(type_check(&WhileParser::new().parse("while D && 13 <= A || 456 != B {let A = true; if A && false {return A || true}}").unwrap(), &mut c, &mut funcs).is_ok());
+    assert!(type_check(&WhileParser::new().parse("while true {let A = true; let c = &A}").unwrap(), &mut c, &mut funcs).is_ok());
+    assert!(type_check(&WhileParser::new().parse("while true {let A = true; let c = *A}").unwrap(), &mut c, &mut funcs).is_err());
+    assert!(type_check(&WhileParser::new().parse("while true {let A = true; let c = &A; let b = *c}").unwrap(), &mut c, &mut funcs).is_ok());
+    assert!(type_check(&WhileParser::new().parse("while true {let A = true; let c = &mut A; let b = *c}").unwrap(), &mut c, &mut funcs).is_ok());
+    assert!(type_check(&WhileParser::new().parse("while true {let A = true; let c = &A; let b = *c}").unwrap(), &mut c, &mut funcs).is_ok());
+    assert!(type_check(&WhileParser::new().parse("while true {let A: i32 = 5; let c: &i32 = &A; let b = *c}").unwrap(), &mut c, &mut funcs).is_ok());
+    println!("@@@@@@@@@@@@@@@@@@@@@@@@@");
     assert!(type_check(&FunctionParser::new().parse("fib(a: bool, d: bool) -> i32 {
         let x = 1+4;
         let y = true || false;
         let z = 2345;
         let a: i32 = foo(1 + 4, true || false, z + 1);
         a
-    }").unwrap(), &mut c).is_ok());
+    }").unwrap(), &mut c, &mut funcs).is_ok());
     assert!(type_check(&FunctionParser::new().parse("fib(a: bool, d: bool) -> i32 {
         let x = 5;
         let y = &mut x;
         *y = 18;
         return x
-    }").unwrap(), &mut c).is_ok());
-    assert!(type_check(&WhileParser::new().parse("while false{let a: bool = true <= false}").unwrap(), &mut c).is_err());
-    assert!(type_check(&WhileParser::new().parse("while false{let a: bool = 5 && 6}").unwrap(), &mut c).is_err());
-    assert!(type_check(&WhileParser::new().parse("while false{let a: bool = false; let a = &5}").unwrap(), &mut c).is_err());    
+    }").unwrap(), &mut c, &mut funcs).is_ok());
+    assert!(type_check(&WhileParser::new().parse("while false{let a: bool = true <= false}").unwrap(), &mut c, &mut funcs).is_err());
+    assert!(type_check(&WhileParser::new().parse("while false{let a: bool = 5 && 6}").unwrap(), &mut c, &mut funcs).is_err());
+    assert!(type_check(&WhileParser::new().parse("while false{let a: bool = false; let a = &5}").unwrap(), &mut c, &mut funcs).is_err());
+    println!("QQQQQQQQQQQQQQQQQQQQQQQQQQQ");
+    println!("{:?}", type_check(&ProgramParser::new().parse("fn fib(x: i32) -> i32{
+        let x = 2;
+        return 4 + x;
+    }
+    fn main(){
+        let mut y = true;
+        while true{
+            y = false
+        };
+        fib(2345);
+    }
+    ").unwrap(), &mut c, &mut funcs));    
+    assert!(type_check(&ProgramParser::new().parse("fn factorial(x: i32) -> i32{
+        let mut ret: i32 = 0;
+        if x <= 1 {
+            ret = 1;
+        }
+        else{
+          ret = x * 123 + 111;
+        };
+        return ret;
+    }
+    fn main(){
+        factorial(6);
+        return;
+    }
 
+    ").unwrap(), &mut c, &mut funcs).is_ok());
+    println!("passed");
 
   }
 
