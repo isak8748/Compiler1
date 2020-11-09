@@ -220,6 +220,9 @@ TypeSpec:
 ;
 ```
 
+&&frac{a, b}&&
+
+Parethesized sub expressions are supported as well as operator precedence. "*", "/" and "%" have the highes precedence, then "+" and "-", then comparisons and lastly "||" and "&&".
 
 
 ## Your semantics
