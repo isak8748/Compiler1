@@ -18,8 +18,17 @@
 
 - Compare your solution to the requirements (as stated in the README.md). What are your contributions to the implementation.
 
+Program:
+
 ```
-: id: a
+: ("fn" Function)*
+;
+```
+
+Function:
+
+```
+: Id "(" Params ","* ")" ("->" Id) "{" Instruction* "}"
 ;
 ```
 
