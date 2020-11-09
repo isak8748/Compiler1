@@ -414,9 +414,6 @@ pub fn interpret_let(id: &String, value: &Option<Box<Node>>, vars: &mut VarConte
 pub fn interpret_assign(id: &String, value: &Node, vars: &mut VarContext, funcs: &mut FnContext) -> Result<Value, &'static str>{
     let val = interpret(value, vars, funcs);
     vars.update(id, &val.clone().unwrap());
-    println!("UPDATING VALUE AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
-    println!("{:?}", &val.clone().unwrap());
-    println!("{:?}", vars.get(id));
     let create_ref = match val.clone().unwrap() {
         Value::RefValue => true,
         _ => false,
@@ -426,11 +423,11 @@ pub fn interpret_assign(id: &String, value: &Node, vars: &mut VarContext, funcs:
         return Ok(Value::NoValue);
     }
     //vars.insert(id, &val.unwrap());
-    println!("AFTER INSERT");
-    println!("{:?}", vars.get(id));
+    //println!("AFTER INSERT");
+    //println!("{:?}", vars.get(id));
     vars.remove_mut_borrow(id);
-    println!("AFTER REMOVE MUT BORROW");
-    println!("{:?}", vars.get(id));
+    //println!("AFTER REMOVE MUT BORROW");
+    //println!("{:?}", vars.get(id));
     return Ok(Value::NoValue);
 }
 
@@ -484,7 +481,6 @@ pub fn interpret_while(condition: &Node, instr: &Vec<Box<Node>>, vars: &mut VarC
             _ => panic!("while condition did not evaluate to boolean"),
         };
         if condition_value{
-            println!("true");
             vars.add_scope();
             for n in instr{
                 let _r = interpret(n, vars, funcs);
