@@ -28,9 +28,199 @@ Program:
 Function:
 
 ```
-: Id "(" Params ","* ")" ("->" Id) "{" Instruction* "}"
+: Id "(" Params ","* ")" ("->" Id) "{" Body "}"
 ;
 ```
+
+Params:
+```
+:(Id TypeSpec ",")* [Id TypeSpec]
+;
+```
+
+Body:
+```
+:(Instruction ";")* [Instruction]
+;
+```
+
+Id:
+```
+:([a-z]|[A-Z]) ([a-z]|[A-Z]|[0-9]|_)*
+;
+```
+
+Num:
+```
+:[0-9]+
+;
+```
+
+Term:
+```
+:Num
+|Id
+|"(" BoolExp ")"
+|FunctionCall
+|UnaryOp Term
+|"true"
+|"false"
+;
+```
+
+Factor:
+```
+:Factor FactorOp Term
+|Term
+;
+```
+
+Expr:
+
+```
+:Expr ExprOp Factor
+|Factor
+;
+```
+
+Comparison:
+
+```
+:Comparison CompareOp Expr
+|Expr
+;
+```
+
+BoolExp:
+```
+:BoolExp BooleanOp Comparison
+|Comparison
+;
+```
+
+FactorOp:
+```
+:"*"
+|"/"
+|"%"
+;
+```
+
+ExprOp:
+```
+:"+"
+|"-"
+;
+```
+CompareOp:
+```
+:"<"
+|">"
+|"<="
+|">="
+|"=="
+|"!="
+;
+```
+
+BooleanOp:
+```
+:"&&"
+;"||"
+;
+```
+
+UnaryOp:
+```
+:"!"
+|"-"
+|"&"
+|"&mut"
+|"*"
+;
+```
+
+
+Instruction:
+```
+:BoolExp
+|Declaration
+|Stmt
+|If
+|IfElse
+|While
+|Return
+|WriteByReference
+;
+```
+
+Return:
+```
+:"return" [BoolExp]
+;
+```
+
+Stmt:
+```
+:Id "=" Instruction
+;
+```
+
+Declaration:
+```
+:"let" "mut" Id [TypeSpec] ["=" Instruction]
+|"let" Id [TypeSpec] ["=" Instruction]
+;
+```
+
+WriteByReference:
+```
+:UnaryOp Id "=" Instruction
+;
+```
+
+FunctionCall:
+```
+:Id "(" Arguments ")"
+;
+```
+
+Arguments:
+```
+:(BoolExp ",")* [BoolExp]
+;
+```
+
+If:
+```
+:"if" BoolExp "{" Body "}"
+;
+```
+
+IfElse
+```
+:"if" BoolExp "{" Body "}" "else" "{" Body "}"
+;
+```
+
+While:
+```
+:"while" BoolExp "{" Body "}"
+;
+```
+
+TypeSpec:
+```
+:": i32"
+|": bool"
+|": &i32"
+|": &mut i32"
+|": &bool"
+|": &mut bool"
+;
+```
+
+
 
 ## Your semantics
 
