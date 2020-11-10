@@ -222,7 +222,7 @@ TypeSpec:
 
 
 ```math
-\frac{b}{b}
+\frac{12}{12}
 ```
 
 Parethesized sub expressions are supported as well as operator precedence. "*", "/" and "%" have the highes precedence, then "+" and "-", then comparisons and lastly "||" and "&&".
