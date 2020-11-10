@@ -220,12 +220,32 @@ TypeSpec:
 ;
 ```
 
+Example Program
+```rust
+fn math(x: i32, y: i32) -> bool{
+    let a: i32 = 13 * (2 + 1);
+    let b = true;
+    let c;
+    if(x % 2 >= 5){
+        c = false;
+    }
+    else{
+        c = true;
+    }
+    return c && b;
+}
+
+fn main() -> i32{
+
+}
+```
+
 
 ```math
 \frac{12}{12}
 ```
 
-Parethesized sub expressions are supported as well as operator precedence. "*", "/" and "%" have the highes precedence, then "+" and "-", then comparisons and lastly "||" and "&&".
+Parethesized sub expressions are supported as well as operator precedence. "*", "/" and "%" have the highes precedence, then "+" and "-", then comparisons and lastly "||" and "&&". I have worked alone on this project.
 
 
 ## Your semantics
@@ -238,6 +258,57 @@ Parethesized sub expressions are supported as well as operator precedence. "*", 
 
 - Compare your solution to the requirements (as stated in the README.md). What are your contributions to the implementation.
 
+Constants:
+
+```math
+\frac{}{<n, σ> -> n}
+```
+Same for booleans
+
+Variables:
+```math
+\frac{}{<x, σ> -> σ(x)}
+```
+
+Arithmetic operations:
+```math
+\frac{}{<n1 ⊕ n2, σ> -> n3}
+```
+It is similar for the boolean operations. For comparison operators the result will always be a boolean value. All boolean operations can be used on numbers and 2 of them on booleans.
+
+Sub-expressions:
+```math
+\frac{<a1, σ> -> a1'}{<a1 ⊕ a2, σ> -> <a1' ⊕ a2, σ>}
+```
+Parentheses can be used to create sub expressions. Otherwise operator precedence determines the order sub expressions are evaluated.
+
+Assignment:
+```math
+\frac{<a1, σ> -> a1'}{<x := n, σ> -> <skip, σ[x->n]>}
+```
+σ[x->n] is the updated variable environment. Declaration of variables work similarly. If an old variable with the same name exists it will be replaced.
+
+Sequence:
+
+```math
+\frac{<c0, σ> -> <c0', σ'>}{<c0;c1, σ> -> <c0';c1, σ'>}
+```
+
+If/else:
+```math
+\frac{<b, σ> -> b'}{<if b then c1 else c2, σ> -> <if b' then c1 else c2>}
+```
+The condition will eventually evaluate to true or false(ensured  by the typechecker).
+
+
+While:
+```math
+\frac{}{<while b do c, σ> -> <if b then (c; while b do c) else skip, σ>}
+```
+
+
+
+
 ## Your type checker
 
 - Give a simplified set of Type Checking Rules for your language (those rules look very much like the SOS rules, but over types not values). Also here you don't need to detail rules that are similar (follow the same pattern).
@@ -248,6 +319,108 @@ Parethesized sub expressions are supported as well as operator precedence. "*", 
 
 - Compare your solution to the requirements (as stated in the README.md). What are your contributions to the implementation.
 
+Arithmetic operations:
+```math
+\frac{}{<i32 ⊕ i32, σ> -> i32}
+```
+For logical operations i32 is replaced with boolean. For comparisons the result is boolean and the operands can be either boolean or i32 (depending on the operation). The typechecker will make sure the operands are the correct type.
+
+There are a few ways to declare a variable:
+```rust
+let a: i32 = 1;
+let b = bool;
+let c;
+let d: bool;
+c = 123;
+d = true;
+```
+
+As seen the type can be specified. The typechecker will then validate that the expression is of the correct type. If the type is not specified the typechecker will infer the type from the expression. If no value is assigned at all the variable is added to context and if no type is specified it will remain of unknown type until assigned a value.
+
+Incorrect declarations:
+```rust
+let a: i32 = true;
+let b: bool = 5;
+```
+
+When assigning to a variable its type is checked in the context and the typechecker makes sure it matches the expression assigned. The typechecker also checks if the variable is mutable.
+
+Incorrect assignments:
+
+```rust
+let mut a = 5;
+a = true;
+let x = true;
+x = false;
+```
+
+If/Else, If and While:
+
+Correct program:
+```rust
+let b: bool = true;
+if b || a && 3 < 5{
+    let x = 3;
+}
+else{
+    let x = 12;
+}
+```
+Incorrect: program:
+```rust
+while 5 +13{
+    foo(x);
+}
+```
+
+The condition is evaluated to make sure it is of boolean type. For every instruction in all branches the typecheker checks that it obeys all type checking rules.
+
+For If/Else if the last instruction in both blocks is an expression with no semicolon the type of the If/Else instruction will be the type of these expressions to allow assigning to a variable:
+```rust
+let a = if true{5} else {6};
+```
+
+Functions:
+The specified return type of every function is made sure to be correct by the typechecker.
+The return type and the type of every parameter is inserted into context.
+
+Incorrect function:
+```rust
+fn fib(x: i32) -> i32{
+    return true;
+}
+```
+Correct funtion:
+```rust
+fn square(x: i32, bool: b) -> i32{
+    if b{
+        x*x
+    }
+    else{
+        -1
+    }
+}
+```
+Here the return type will be inserted as i32 and the parameters will be [i32, bool].
+
+
+Function calls:
+The type of the function call is the return type of the function (read from context).
+Every argument in the call is compared to the parameter types to make sure its correct.
+
+Incorrect calls:
+```rust
+let a = square(true, true); //Incorrect argument types
+let b: bool = square(13, true); //Return type not boolean
+```
+
+Correct call:
+```rust
+let a: i32 = square(5, true);
+```
+
+
+
 ## Your borrrow checker
 
 - Give a specification for well versus ill formed borrows. (What are the rules the borrow checker should check).
@@ -255,6 +428,38 @@ Parethesized sub expressions are supported as well as operator precedence. "*", 
 - Demonstrate the cases of ill formed borrows that your borrow checker is able to detect and reject.
 
 - Compare your solution to the requirements (as stated in the README.md). What are your contributions to the implementation.
+
+Below is an example of well formed borrows:
+
+```rust
+let a = 2;
+let b = &a;
+let c = &mut a;
+*c = 10;
+let x = &a;
+let y = &a;
+a = 6;
+let d = *y;
+```
+When c is created b is removed. c can be used until either a new borrow is created or the value of a gets changed directly(both happen here). The implementation uses a stack of borrows for each variable. When a mutable reference is created the stack is cleared. Non mutable references will just be added to the stack. So if a mutable reference exists it will always be one at the bottom of the stack. When assigning directly to a variable this is removed and the the mutable reference can not be accessed when non-mutable references also exist. This ensures every variable can only have one unique (usable) mutable references or any number of non-mutable references withing a "block" of code.
+
+Below is an example of ill formed borrows:
+```rust
+let a = 2;
+let b = &mut a;
+a = 13;
+*b = 12;
+```
+Within the block there are two ways to write to the variable a: directly and with the reference
+
+Another example:
+```rust
+let a = 2;
+let b = &mut a;
+let c = &a;
+let x = *b;
+```
+Here b will be unreachable as there would otherwise be both a mutable and non-mutable reference to a in a block of code.
 
 ## Your LLVM/Crane-Lift backend (optional)
 

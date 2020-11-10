@@ -558,6 +558,7 @@ pub fn interpret(node: &Node, vars: &mut VarContext, funcs: &mut FnContext) -> R
         Node::BlockValue(a) => interpret(a, vars, funcs),
         Node::Return(o) => interpret_return(o, vars, funcs),
         Node::Call(s, v) => interpret_call(s, v, funcs, vars),
+        Node::WriteByRef(_o, s, v) => interpret_write_ref(s, v, vars, funcs),
         Node::Program(v) => interpret_program(v),
         _ => panic!("err"), 
     };

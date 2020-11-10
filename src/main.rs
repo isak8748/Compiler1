@@ -308,11 +308,13 @@ fn test_parse() {
         let a = 2;
         let b = &a;
         let c = &mut a;
-        let xd = &a;
-        let dddd = &a;
+        *c = 10;
+        let x = &a;
+        let y = &a;
         a = 6;
-        let d = *xd;
+        let d = *y;
     }").unwrap(), &mut c, &mut funcs);
+    println!(" ok? {:?}", _d);
       let _v = interpret(&IfParser::new().parse("if 4 < 5 {
         let a = 0;
         let b = &a;
