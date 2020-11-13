@@ -471,11 +471,6 @@ let a: i32 = square(5, true);
 
 ## Your borrrow checker
 
-- Give a specification for well versus ill formed borrows. (What are the rules the borrow checker should check).
-
-- Demonstrate the cases of ill formed borrows that your borrow checker is able to detect and reject.
-
-- Compare your solution to the requirements (as stated in the README.md). What are your contributions to the implementation.
 
 Below is an example of well formed borrows:
 
