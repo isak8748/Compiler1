@@ -11,12 +11,10 @@ pub mod interpreter;
 use crate::ast::{Opcode, Node};
 use crate::typechecker::{type_check_op, init_context, init_funcs, type_check, type_check_program};
 use crate::interpreter::{interpret, interp_context, interp_fn_context};
-use std::collections::HashMap;
 use std::{env, fs};
 
 
 fn main(){
-    test_string();
     println!("{}", ExprOpParser::new().parse("+").unwrap());
     println!("{}", ExprParser::new().parse("5+6*7").unwrap());
     println!("{}", ExprParser::new().parse("22 * 44 + 66").unwrap());
@@ -26,7 +24,6 @@ fn main(){
     test_parse();
     test_types();
     test_interp();
-    test_hashmap();
     let mut dir = env::current_dir().unwrap();
     println!("{:?}", dir);
     dir.pop();
@@ -140,54 +137,6 @@ fn test_parse() {
     
   }
 
-  fn asd() -> i32{
-      let a;
-      let _b: bool;
-      a = 5;
-      return a;
-  }
-
-  fn bool_op() -> bool{
-      let a = true;
-      let b = false;
-      if a == b {
-          return true;
-      }
-      else{
-          return false;
-      }
-  }
-
-  fn test_string(){
-      let a: String = "xd".to_string();
-      let b: String = "xd".to_string();
-      if a == b{
-          println!("equal");
-      }
-      else{
-          println!("not equal");
-      }
-  }
-
-  #[allow(dead_code)]
-  fn test_b(){
-      let mut a = 1;
-      let _roger = &a;
-      let __b = &mut a;
-      let _rr = &mut a;
-      let _xd = &mut a;
-      let c = &a;
-      println!("{:?}", c);
-  }
-
-  fn test_hashmap(){
-      let mut map: HashMap<i32, bool> = HashMap::new();
-      map.insert(3, true);
-      println!("{:?}", map);
-      map.insert(3, false);
-      println!("{:?}", map);
-
-  }
 
 
   fn test_types(){
@@ -204,7 +153,6 @@ fn test_parse() {
     assert!(type_check(&n4, &mut c, &mut funcs).is_ok());
     assert!(type_check_op(&n1, &Opcode::And, &n2, &mut c, &mut funcs).is_err());
     assert!(type_check(&BoolExpParser::new().parse("D == false && 14 < 17 || A >= B").unwrap(), &mut c, &mut funcs).is_ok());
-    assert_eq!(bool_op(), false);
     assert!(type_check(&DeclarationParser::new().parse("let x").unwrap(), &mut c, &mut funcs).is_ok());
     assert!(type_check(&DeclarationParser::new().parse("let asd: i32").unwrap(), &mut c, &mut funcs).is_ok());
     assert!(type_check(&DeclarationParser::new().parse("let y = 17").unwrap(), &mut c, &mut funcs).is_ok());

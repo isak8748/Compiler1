@@ -280,7 +280,7 @@ pub fn interpret_call(func_name: &String, args: &Vec<Box<Node>>, funcs: &mut FnC
     let fn_info = funcs.fn_env.get_mut(func_name).unwrap().clone();
     let new_var_env = VecDeque::new();
     let mut new_vars = VarContext{var_env: new_var_env};
-    new_vars.add_scope(); //This will be the top scope were references can point
+    new_vars.add_scope(); 
     new_vars.add_scope(); //Top scope of the function
     let mut i = 0;
     for _arg in args{     //In the new context the parameter name and the argument values are inserted together
@@ -291,7 +291,7 @@ pub fn interpret_call(func_name: &String, args: &Vec<Box<Node>>, funcs: &mut FnC
     let mut ret = Ok(Value::NoValue);
     let mut j = 0;
     for instr in &fn_info.instructions{
-        let _x = interpret(instr, &mut new_vars, funcs); //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@2
+        let _x = interpret(instr, &mut new_vars, funcs); 
         match &**instr{
             Node::Return(_o) => ret = interpret(instr, &mut new_vars, funcs),
             Node::BlockValue(_v) => ret = interpret(instr, &mut new_vars, funcs),
@@ -451,7 +451,6 @@ fn create_reference(id: &String, node: &Node, vars: &mut VarContext, funcs: &mut
     println!("{:?}", id);
     println!("{:?}", ref_name);
     vars.insert_borrow(id, &ref_name, is_mut);
-    //vars.insert(&ref_name, &Value::NoValue);
 
 }
 

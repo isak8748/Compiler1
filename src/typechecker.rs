@@ -39,11 +39,8 @@ pub struct FnContext{
     fn_env: HashMap<String, FnInfo>,
 }
 
-#[allow(dead_code)]
 pub struct Context{
-    //var_env: HashMap<String, VarInfo>,
     var_env: VecDeque<HashMap<String, VarInfo>>,
-    //fn_env: HashMap<String, FnInfo>,
 }
 
 impl Context{
@@ -182,9 +179,6 @@ pub fn type_check_fn_def(id: &String, params: &Vec<Box<Node>>, rtype: &Option<St
 
         }
         println!("{:?}", context.var_env);
-        //let mut context = init_context(); //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@22
-                                          //WE NEED TO INIT CONTEXT WITH THE ARGUMENTS
-                                          //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
         let ret_type: Types;
         if rtype.is_none() {
@@ -667,7 +661,6 @@ pub fn type_check_write_ref(op: &Opcode, id: &String, node: &Node, context: &mut
 
 
 
-#[allow(dead_code)]
 #[allow(unused_variables)]
 pub fn type_check(node: &Node, context: &mut Context, mut funcs: &mut FnContext) -> Result<Types, &'static str> {
     let ret = match node{

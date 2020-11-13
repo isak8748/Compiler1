@@ -261,7 +261,7 @@ fn foo(){
     return;
 }
 ```
-This function would bot be accepted by the grammar.
+This function would not be accepted by the grammar.
 
 
 
