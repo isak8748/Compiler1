@@ -1,0 +1,34 @@
+fn math(x: i32, y: i32) -> bool{
+    let a: i32 = 13 * (2 + 1);
+    let b = true;
+    let mut c = true;
+    if(x % 2 >= 5){
+        c = false;
+    }
+    else{
+        c = true;
+    };
+    return c && b;
+}
+
+fn foo(b: bool, c: bool) -> bool{
+    let a = &mut b;
+    if *a && c{
+        *a = false;
+    };
+    return *a;
+}
+
+fn main() -> i32{
+    let j = 13;
+    let d = &j;
+    let i = math(56, j);
+    let mut x = 0;
+    if foo(true, true){
+        x = 100;
+    }
+    else{
+        x = 60;
+    };
+    return x;
+}

@@ -283,7 +283,7 @@ pub fn interpret_call(func_name: &String, args: &Vec<Box<Node>>, funcs: &mut FnC
     new_vars.add_scope(); //This will be the top scope were references can point
     new_vars.add_scope(); //Top scope of the function
     let mut i = 0;
-    for arg in args{     //In the new context the parameter name and the argument values are inserted together
+    for _arg in args{     //In the new context the parameter name and the argument values are inserted together
         let param_name = get_param_name(&fn_info.params[i]);
         new_vars.insert(&param_name, &values[i]);
         i += 1;
@@ -291,7 +291,7 @@ pub fn interpret_call(func_name: &String, args: &Vec<Box<Node>>, funcs: &mut FnC
     let mut ret = Ok(Value::NoValue);
     let mut j = 0;
     for instr in &fn_info.instructions{
-        let x = interpret(instr, &mut new_vars, funcs); //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@2
+        let _x = interpret(instr, &mut new_vars, funcs); //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@2
         match &**instr{
             Node::Return(_o) => ret = interpret(instr, &mut new_vars, funcs),
             Node::BlockValue(_v) => ret = interpret(instr, &mut new_vars, funcs),

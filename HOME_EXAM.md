@@ -1,22 +1,12 @@
 # Home Exam D7050E
 
-- Fork this repo and put your answers (or links to answers) in THIS file.
 
 ## Your repo
 
-- Link to your repo here:
+https://github.com/isak8748/Compiler1
 
 ## Your syntax
 
-- Give an as complete as possible EBNF grammar for your language.
-
-- Give an example that showcases all rules of your EBNF. The program should "do" something as used in the next exercise.
-
-- For your implementation, show that your compiler successfully accepts the input program.
-
-- Give a set of examples that are syntactically illegal, and rejected by your compiler.
-
-- Compare your solution to the requirements (as stated in the README.md). What are your contributions to the implementation.
 
 Program:
 
@@ -220,43 +210,65 @@ TypeSpec:
 ;
 ```
 
+Parethesized sub expressions are supported as well as operator precedence. "*", "/" and "%" have the highes precedence, then "+" and "-", then comparisons and lastly "||" and "&&". I have worked alone on this project.
+
 Example Program
 ```rust
 fn math(x: i32, y: i32) -> bool{
     let a: i32 = 13 * (2 + 1);
     let b = true;
-    let c;
+    let mut c = true;
     if(x % 2 >= 5){
         c = false;
     }
     else{
         c = true;
-    }
+    };
     return c && b;
 }
 
-fn main() -> i32{
+fn foo(b: bool, c: bool) -> bool{
+    let a = &mut b;
+    if *a && c{
+        *a = false;
+    };
+    return *a;
+}
 
+fn main() -> i32{
+    let j = 13;
+    let d = &j;
+    let i = math(56, j);
+    let mut x = 0;
+    if foo(true, true){
+        x = 100;
+    }
+    else{
+        x = 60;
+    };
+    return x;
 }
 ```
+The above program showcases the grammar. 
 
+Note the semicolons after all if and if/else statements. These are required by the parser unless these statements are the last in a block of instructions:
 
-```math
-\frac{12}{12}
+```rust
+fn foo(){
+    if true{
+        let x = false;
+    }
+    return;
+}
 ```
+This function would bot be accepted by the grammar.
 
-Parethesized sub expressions are supported as well as operator precedence. "*", "/" and "%" have the highes precedence, then "+" and "-", then comparisons and lastly "||" and "&&". I have worked alone on this project.
+
+
 
 
 ## Your semantics
 
-- Give a (simplified) Structural Operational Semantics (SOS) for your language. You don't need to detail rules that are similar (follow the same pattern). Regarding variable environment (store) you may omit details as long as the presentation is easy to follow.
-
-- Explain (in text) what an interpretation of your example should produce, do that by dry running your given example step by step. Relate back to the SOS rules. You may skip repetitions to avoid cluttering.
-
-- For your implementation, give a program (or set of test programs) that cover all the semantics of your language that you have successfully implemented. (Maybe a subset of the input language accepted by the grammar.)
-
-- Compare your solution to the requirements (as stated in the README.md). What are your contributions to the implementation.
 
 Constants:
 
@@ -311,19 +323,53 @@ While:
 
 ## Your type checker
 
-- Give a simplified set of Type Checking Rules for your language (those rules look very much like the SOS rules, but over types not values). Also here you don't need to detail rules that are similar (follow the same pattern).
-
-- Demonstrate each "type rule" by an example. You may use one or several "programs" to showcase where rules successfully apply.
-
-- For your implementation, give a set of programs demonstrating that ill-typed programs are rejected, connect back to the Type Checking Rules to argue why these are illegal and thus should be rejected.
-
-- Compare your solution to the requirements (as stated in the README.md). What are your contributions to the implementation.
 
 Arithmetic operations:
 ```math
 \frac{}{<i32 ⊕ i32, σ> -> i32}
 ```
 For logical operations i32 is replaced with boolean. For comparisons the result is boolean and the operands can be either boolean or i32 (depending on the operation). The typechecker will make sure the operands are the correct type.
+
+Correct operation expressions:
+```rust
+12 + 323
+1 * 12 + 34
+13 % (1 +2)
+true || false
+true == false
+13 < 12
+23 >= 12
+```
+
+Incorrect expressions:
+```rust
+5 * true
+5 || 6
+true && 45
+false + true
+true < false
+```
+
+Unary operations:
+Unary - requires the operand to be a number, ! requires the operand to be a boolean. * requires the operand to be a reference. & and &mut require the operand to be an identifier.
+
+Correct program:
+```rust
+let a: i32 = -5;
+let b: bool = !true;
+let c = &a;
+let d = &mut b;
+let x = *c;
+```
+
+Incorrect program:
+```rust
+let a = -true;
+let b = !(5 + 4);
+let c = *a;
+let d = &true;
+let x = &mut 5;
+```
 
 There are a few ways to declare a variable:
 ```rust
@@ -359,7 +405,7 @@ If/Else, If and While:
 Correct program:
 ```rust
 let b: bool = true;
-if b || a && 3 < 5{
+if b || true && 3 < 5{
     let x = 3;
 }
 else{
@@ -421,6 +467,8 @@ let a: i32 = square(5, true);
 
 
 
+
+
 ## Your borrrow checker
 
 - Give a specification for well versus ill formed borrows. (What are the rules the borrow checker should check).
@@ -461,13 +509,6 @@ let x = *b;
 ```
 Here b will be unreachable as there would otherwise be both a mutable and non-mutable reference to a in a block of code.
 
-## Your LLVM/Crane-Lift backend (optional)
-
-- Let your backend produce LLVM-IR/Crane Lift IR for an example program (covering the translations implemented).
-
-- Describe the translation process, and connect back to the generated IR.
-
-- Compare your solution to the requirements (as stated in the README.md). What are your contributions to the implementation.
 
 ## Overall course goals and learning outcomes.
 
@@ -475,12 +516,23 @@ Comment on the alignment of the concrete course goals (taken from the course des
 
 - Lexical analysis, syntax analysis, and translation into abstract syntax.
 
+I have learned a lot about this through building my AST. I think lalrpop worked really well to relatively quickly create a parser allthough it was a challenge at first. 
+
 - Regular expressions and grammars, context-free languages and grammars, lexer and parser generators. [lalr-pop is a classical parser generator, it auto generated the lexer for you based on regular expressions but allows for you to define the lexer yourself for more control]
+
+I have learned to use regular expressions when creating my grammar. I learned about context-free languages and grammars in class and lalrpop was used as parser and lexer generator.
 
 - Identifier handling and symbol table organization. Type-checking, logical inference systems. [SOS is a logical inference system]
 
+Creating the data structures needed to store information for functions and variables was also a nice challenge and i had to redesign these a few times. I also learned a lot from doing the typechecking. This was probably the most challenging and time consuming part of the program. 
+
 - Intermediate representations and transformations for different languages. [If you attended, Recall lectures relating LLVM/Crane-lift, discussions on SSA (Single Static Assignment) used in LLVM/Crane-lift, and discussions/examples on high [level optimization](https://gitlab.henriktjader.com/pln/d7050e_2020/-/tree/generics_and_traits/examples)]
 
+I learned a bit about this during the lectures but did not implement it.
+
 - Code optimization and register allocation. Machine code generation for common architectures. [Both LLVM/Crane-Lift does the "dirty work" of backend optimization/register allocation leveraging the SSA form of the LLVM-IR]
+
+Also learned  a bit during the lectures but did not icorporate in my program.
+
 
 Comment on additional things that you have experienced and learned throughout the course.

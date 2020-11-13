@@ -431,7 +431,7 @@ pub fn type_check_assign(name: &String, value: &Node, context: &mut Context, mut
         return Err("Invalid expression");
     }
 
-    if left.t.get_type_id() != right.clone().unwrap().get_type_id(){
+    if left.t.get_type_id() != right.clone().unwrap().get_type_id() && left.t.get_type_id() != 0{
         return Err("Mismatched types");
     }
     return right;

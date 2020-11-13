@@ -34,16 +34,16 @@ fn main(){
     println!("{:?}", dir);
     dir.push("src");
     dir.push("tests");
-    dir.push("while.txt");
+    dir.push("sample.txt");
     let s = fs::read_to_string(dir).unwrap();
     let parse = ProgramParser::new().parse(&s);
     assert!(parse.is_ok());
     let mut c = init_context();
     let mut f = init_funcs();
-    println!("{:?}", type_check(&parse.clone().unwrap(), &mut c, &mut f));
+    println!("type_check: {:?}", type_check(&parse.clone().unwrap(), &mut c, &mut f));
     let mut c = interp_context();
     let mut f = interp_fn_context();
-    println!("{:?}", interpret(&parse.unwrap(), &mut c, &mut f));
+    println!("interpreter: {:?}", interpret(&parse.unwrap(), &mut c, &mut f));
 
 
 }
@@ -285,6 +285,24 @@ fn test_parse() {
     }
     fn main(){
         factorial(6);
+        return;
+    }
+
+    ").unwrap(), &mut c, &mut funcs).is_ok());
+    assert!(type_check(&ProgramParser::new().parse("fn factorial(x: i32, y: &i32) -> i32{
+        let mut ret: i32 = 0;
+        if x <= 1 {
+            ret = 1;
+        }
+        else{
+          ret = x * 123 + 111;
+        };
+        return ret;
+    }
+    fn main(){
+        let a = 5;
+        let z = &a;
+        factorial(6, z);
         return;
     }
 
