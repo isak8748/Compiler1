@@ -31,7 +31,7 @@ fn main(){
     println!("{:?}", dir);
     dir.push("src");
     dir.push("tests");
-    dir.push("args.txt");
+    dir.push("arithmetic.txt");
     let s = fs::read_to_string(dir).unwrap();
     let parse = ProgramParser::new().parse(&s);
     assert!(parse.is_ok());

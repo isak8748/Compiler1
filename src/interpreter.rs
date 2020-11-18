@@ -305,17 +305,14 @@ pub fn interpret_call(func_name: &String, args: &Vec<Box<Node>>, funcs: &mut FnC
             let n = Node::UnaryOp(o, args[i].clone());
             let val = interpret(&n, vars, funcs).unwrap();
 
-            println!("inserted id: {:?}", id);
 
             let b_name = match *args[i].clone(){
                 Node::ID(s) => s,
                 _ => panic!("unimplemented"),
             };
-            new_vars.insert(&b_name.clone(), &val); //id needs to be changed@@@@@
+            new_vars.insert(&b_name.clone(), &val); //This should be changes to something which cant be overwritten
 
-            println!("borrow name: {:?}", b_name);
             new_vars.insert_borrow(&id, &b_name, mut_ref);
-            println!("{:?}", new_vars.var_env.get(0));
         }
         i += 1;
     };
