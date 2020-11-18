@@ -1,15 +1,11 @@
 use std::collections::HashMap;
-#[allow(unused_imports)]
 use std::collections::VecDeque;
 use crate::ast::Node;
 use crate::ast::Opcode;
 
 
-//TODO fn_env insert and calls, comparison operators on bools
 
-#[derive(Clone)]
-//#[derive(Copy)]
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Types{
     Boolean,
     Number,
@@ -69,6 +65,26 @@ impl Context{
         }
     }
 
+    fn update(&mut self, id: &String, t: &Types){
+        let mut var_info = VarInfo{t: Types::Unknown, mutable: false};
+
+        for i in &mut self.var_env {
+            if i.contains_key(id){
+                let temp = i.get_mut(id).unwrap();
+                temp.t = t.clone();
+                var_info = temp.clone();
+                break;
+            }
+        };
+
+        for i in &mut self.var_env{
+            if i.contains_key(id){
+                i.insert(id.clone(), var_info);
+                return;
+            }
+        }
+    }
+
     fn add_scope(&mut self){
         let map: HashMap<String, VarInfo>  = HashMap::new();
         self.var_env.push_front(map);
@@ -78,16 +94,12 @@ impl Context{
         self.var_env.pop_front();
     }
 }
-#[allow(dead_code)]
-#[derive(Clone)]
-#[derive(Debug)]
-//#[derive(Copy)]
+#[derive(Clone, Debug)]
 pub struct VarInfo{
     t: Types,
     mutable: bool,
 }
 
-#[allow(dead_code)]
 pub struct FnInfo{
     ret: Types,
     params: Vec<Types>,
@@ -132,6 +144,10 @@ pub fn type_check_program(functions: &Vec<Box<Node>>) -> Result<Types, &'static 
             Node::FnDef(_, _, o, _) => o,
             _ => panic!("invalid program"),
         };
+        let params = match &**f{
+            Node::FnDef(_, p, _, _) => p,
+            _ => panic!("invalid program"),
+        };
         if ret_type.is_none(){
             info.ret = Types::UnitType;
         }
@@ -145,6 +161,15 @@ pub fn type_check_program(functions: &Vec<Box<Node>>) -> Result<Types, &'static 
                 _ => panic!("invalid fn definition"),
             };
         }
+
+        let mut parameter_defs = vec![Types::Unknown; params.len()];
+        let mut i = 0;
+        for param in params{
+            parameter_defs[i] = check_param(param).unwrap();
+            i += 1;
+        };
+
+        info.params = parameter_defs;
         
         funcs.fn_env.insert(name.clone(), info);
 
@@ -175,6 +200,7 @@ pub fn type_check_fn_def(id: &String, params: &Vec<Box<Node>>, rtype: &Option<St
                 Node::ParamDef(_, t) => type_check_param_def(t).unwrap(),
                 _ => panic!("invalid param"),
             };
+            println!("{:?}", name);
             context.insert(name, &typ, &true);
 
         }
@@ -211,21 +237,15 @@ pub fn type_check_fn_def(id: &String, params: &Vec<Box<Node>>, rtype: &Option<St
         }
 
         let mut real_ret_type = Ok(Types::UnitType);
-        let mut j = 0;
         //Setting the actual returnted type
         for n in instr{
             match &**n {
                 Node::Return(_o) => real_ret_type = type_check(n, &mut context, funcs),
                 Node::BlockValue(_v) => real_ret_type = type_check(n, &mut context, funcs),
-                Node::IfElse(_a, _b, _c) => if j == instr.len()-1 {
-                    real_ret_type = type_check(n, &mut context, funcs);
-                },
                 _ => (),
             };
-            j += 1;
         }
 
-        j = 0;
         //Checks if any returns are of different type than the last
         for n in instr{
             let e = type_check(n, &mut context, funcs);
@@ -239,14 +259,8 @@ pub fn type_check_fn_def(id: &String, params: &Vec<Box<Node>>, rtype: &Option<St
                 Node::BlockValue(_v) => if e.unwrap().get_type_id() != real_ret_type.clone().unwrap().get_type_id(){
                     return Err("Function tries to return different types");
                 },
-                Node::IfElse(_a, _b, _c) => if j == instr.len()-1 {
-                    if e.unwrap().get_type_id() != real_ret_type.clone().unwrap().get_type_id(){
-                        return Err("Function tries to return different types");
-                    }
-                },
                 _ => (),
             };
-            j += 1;
         }
 
         
@@ -288,13 +302,23 @@ pub fn type_check_param_def(def: &String) -> Result<Types, &'static str> {
         ": bool" => Types::Boolean,
         ": &i32" => Types::Ref(Box::new(Types::Number)),
         ": &bool" => Types::Ref(Box::new(Types::Boolean)),
+        ": &mut i32" => Types::MutRef(Box::new(Types::Number)),
+        ": &mut bool" => Types::MutRef(Box::new(Types::Boolean)),
         _ => panic!("invalid param definition"),
     };
     return Ok(ret_type);
 }
 
+pub fn check_param(node: &Node) -> Result<Types, &'static str>{
+    let ret = match node{
+        Node::ParamDef(_, s) => type_check_param_def(s),
+        _ => panic!("called on params"),
+    };
+    ret
+}
 
-pub fn type_check_op(node1: &Node, operation: &Opcode, node2: &Node, context: &mut Context, mut funcs: &mut FnContext) -> Result<Types, &'static str> {
+
+pub fn type_check_op(node1: &Node, operation: &Opcode, node2: &Node, context: &mut Context, funcs: &mut FnContext) -> Result<Types, &'static str> {
     let compare = match operation {
         Opcode::Less => true,
         Opcode::LessOrEq => true,
@@ -358,7 +382,7 @@ pub fn type_check_op(node1: &Node, operation: &Opcode, node2: &Node, context: &m
     }
 }
 
-pub fn type_check_let(id: &String, mutable: &bool, typedef: &Option<String>, value: &Option<Box<Node>>, context: &mut Context, mut funcs: &mut FnContext) 
+pub fn type_check_let(id: &String, mutable: &bool, typedef: &Option<String>, value: &Option<Box<Node>>, context: &mut Context, funcs: &mut FnContext) 
 -> Result<Types, &'static str>{
     //A type can be specified
     let left = match typedef {
@@ -410,7 +434,7 @@ pub fn type_check_let(id: &String, mutable: &bool, typedef: &Option<String>, val
     panic!("This line should be unreachable");
 }
 
-pub fn type_check_assign(name: &String, value: &Node, context: &mut Context, mut funcs: &mut FnContext) 
+pub fn type_check_assign(name: &String, value: &Node, context: &mut Context, funcs: &mut FnContext) 
 -> Result<Types, &'static str>{
     if context.get(name).is_none(){
         return Err("tried assigning to non-existant variable");
@@ -428,10 +452,15 @@ pub fn type_check_assign(name: &String, value: &Node, context: &mut Context, mut
     if left.t.get_type_id() != right.clone().unwrap().get_type_id() && left.t.get_type_id() != 0{
         return Err("Mismatched types");
     }
+
+    if left.t.get_type_id() == 0{
+        context.update(name, &right.clone().unwrap());
+    }
+
     return right;
 }
 
-pub fn type_check_while(condition: &Node, instr: &Vec<Box<Node>>, context: &mut Context, mut funcs: &mut FnContext) 
+pub fn type_check_while(condition: &Node, instr: &Vec<Box<Node>>, context: &mut Context, funcs: &mut FnContext) 
 -> Result<Types, &'static str>{
     let condition_type = type_check(condition, context, funcs);
     if condition_type.is_err(){
@@ -453,7 +482,7 @@ pub fn type_check_while(condition: &Node, instr: &Vec<Box<Node>>, context: &mut 
     return Err("While condition did not evaluate to a boolean");
 }
 
-pub fn type_check_if(condition: &Node, instr: &Vec<Box<Node>>, context: &mut Context, mut funcs: &mut FnContext) 
+pub fn type_check_if(condition: &Node, instr: &Vec<Box<Node>>, context: &mut Context, funcs: &mut FnContext) 
 ->  Result<Types, &'static str> {
     let condition_type = type_check(condition, context, funcs);
     if condition_type.is_err(){
@@ -484,7 +513,7 @@ pub fn type_check_if(condition: &Node, instr: &Vec<Box<Node>>, context: &mut Con
     return Err("If condition did not evaluate to a boolean"); 
 }
 
-pub fn type_check_if_else(condition: &Node, if_instr: &Vec<Box<Node>>, else_instr: &Vec<Box<Node>>, context: &mut Context, mut funcs: &mut FnContext)
+pub fn type_check_if_else(condition: &Node, if_instr: &Vec<Box<Node>>, else_instr: &Vec<Box<Node>>, context: &mut Context, funcs: &mut FnContext)
 ->  Result<Types, &'static str>{
     let condition_type = type_check(condition, context, funcs);
     if condition_type.is_err(){
@@ -542,7 +571,7 @@ pub fn type_check_if_else(condition: &Node, if_instr: &Vec<Box<Node>>, else_inst
     return Err("If condition did not evaluate to a boolean");
 }
 
-pub fn type_check_return(node: &Option<Box<Node>>, context: &mut Context, mut funcs: &mut FnContext) -> Result<Types, &'static str>{
+pub fn type_check_return(node: &Option<Box<Node>>, context: &mut Context, funcs: &mut FnContext) -> Result<Types, &'static str>{
     let ret = match node {
         Some(b) => type_check(&b, context, funcs),
         None => Ok(Types::UnitType),
@@ -552,7 +581,7 @@ pub fn type_check_return(node: &Option<Box<Node>>, context: &mut Context, mut fu
 }
 
 
-pub fn type_check_unary_op(node: &Node, operation: &Opcode, context: &mut Context, mut funcs: &mut FnContext) -> Result<Types, &'static str> {
+pub fn type_check_unary_op(node: &Node, operation: &Opcode, context: &mut Context, funcs: &mut FnContext) -> Result<Types, &'static str> {
     let op_type = match operation {
         Opcode::UnarySub => Types::Number,
         Opcode::Not => Types::Boolean,
@@ -631,7 +660,7 @@ pub fn type_check_unary_op(node: &Node, operation: &Opcode, context: &mut Contex
     }
 }
 
-pub fn type_check_write_ref(op: &Opcode, id: &String, node: &Node, context: &mut Context, mut funcs: &mut FnContext) -> Result<Types, &'static str> {
+pub fn type_check_write_ref(op: &Opcode, id: &String, node: &Node, context: &mut Context, funcs: &mut FnContext) -> Result<Types, &'static str> {
     let b = match op{
         Opcode::DeRef => true,
         _ => false,
@@ -661,8 +690,7 @@ pub fn type_check_write_ref(op: &Opcode, id: &String, node: &Node, context: &mut
 
 
 
-#[allow(unused_variables)]
-pub fn type_check(node: &Node, context: &mut Context, mut funcs: &mut FnContext) -> Result<Types, &'static str> {
+pub fn type_check(node: &Node, context: &mut Context, funcs: &mut FnContext) -> Result<Types, &'static str> {
     let ret = match node{
         Node::Number(_n) => Ok(Types::Number),
         Node::Boolean(_b) => Ok(Types::Boolean),

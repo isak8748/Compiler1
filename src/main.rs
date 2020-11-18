@@ -9,7 +9,7 @@ pub mod typechecker;
 pub mod interpreter;
 
 use crate::ast::{Opcode, Node};
-use crate::typechecker::{type_check_op, init_context, init_funcs, type_check, type_check_program};
+use crate::typechecker::{type_check_op, init_context, init_funcs, type_check};
 use crate::interpreter::{interpret, interp_context, interp_fn_context};
 use std::{env, fs};
 
@@ -31,7 +31,7 @@ fn main(){
     println!("{:?}", dir);
     dir.push("src");
     dir.push("tests");
-    dir.push("sample.txt");
+    dir.push("args.txt");
     let s = fs::read_to_string(dir).unwrap();
     let parse = ProgramParser::new().parse(&s);
     assert!(parse.is_ok());

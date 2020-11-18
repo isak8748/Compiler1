@@ -1,0 +1,14 @@
+
+
+
+fn main() -> i32{
+	let x = 5;
+	let b = &x;
+	let y = test1(b, true);
+	return y;
+}
+
+
+fn test1(a: &i32, x: bool) -> i32{
+	return 12 + *a;
+}

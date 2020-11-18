@@ -10,7 +10,7 @@ fn math(x: i32, y: i32) -> i32{
 	let b4 = x >= 5;
 	let b5 = x == 5;
 	let b6 = x != 5;
-	let ret;
+	let mut ret;
 	if b4{
 		ret =  z3;
 	}
@@ -20,6 +20,17 @@ fn math(x: i32, y: i32) -> i32{
 	ret
 }
 
+fn fact(i: i32) -> i32{
+	let mut ret;
+	if i <= 1{
+		ret = 1;
+	}
+	else{
+		ret = i*fact(i-1);
+	};
+	return ret;
+}
+
 fn main() -> i32{
-	return math(6, 7);
+	return fact(5);
 }

@@ -1,10 +1,7 @@
 use std::collections::HashMap;
-#[allow(unused_imports)]
 use std::collections::VecDeque;
 use crate::ast::Node;
 use crate::ast::Opcode;
-
-//TODO: IF-ELSE should return a value 
 
 #[derive(Clone)]
 pub struct FnContext{
@@ -21,16 +18,14 @@ struct FnInfo{
     instructions: Vec<Box<Node>>,
 }
 
-#[derive(Clone)]
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct VarInfo{
     value: Value,
     borrows: VecDeque<Borrow>,
     borrow_of: Option<String>,
 }
 
-#[derive(Debug)]
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Value{
     Number(i32),
     Boolean(bool),
@@ -38,8 +33,7 @@ pub enum Value{
     NoValue,
 }
 
-#[derive(Clone)]
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct Borrow{
     name: String,
     mutable: bool,
@@ -280,27 +274,70 @@ pub fn interpret_call(func_name: &String, args: &Vec<Box<Node>>, funcs: &mut FnC
     let fn_info = funcs.fn_env.get_mut(func_name).unwrap().clone();
     let new_var_env = VecDeque::new();
     let mut new_vars = VarContext{var_env: new_var_env};
-    new_vars.add_scope(); 
+    new_vars.add_scope();
+    
+
+    let mut visited = vec![false; args.len()];
+    let mut i = 0;
+    for param in &fn_info.params{
+        let mut mut_ref = false;
+        let mut non_mut_ref = false;
+        let type_spec = match &**param{
+            Node::ParamDef(_, t) => t,
+            _ => panic!("params only"),
+        };
+
+        let id = match &**param{
+            Node::ParamDef(n, _) => n,
+            _ => panic!("params only"),
+        };
+
+        match type_spec as &str{
+            ": &i32" => non_mut_ref = true,
+            ": &bool" => non_mut_ref = true,
+            ": &mut i32" => mut_ref = true,
+            ": &mut bool" => mut_ref = true,
+            _ => mut_ref = false,
+        };
+        if non_mut_ref || mut_ref{
+            visited[i] = true;
+            let o = Opcode::DeRef;
+            let n = Node::UnaryOp(o, args[i].clone());
+            let val = interpret(&n, vars, funcs).unwrap();
+
+            println!("inserted id: {:?}", id);
+
+            let b_name = match *args[i].clone(){
+                Node::ID(s) => s,
+                _ => panic!("unimplemented"),
+            };
+            new_vars.insert(&b_name.clone(), &val); //id needs to be changed@@@@@
+
+            println!("borrow name: {:?}", b_name);
+            new_vars.insert_borrow(&id, &b_name, mut_ref);
+            println!("{:?}", new_vars.var_env.get(0));
+        }
+        i += 1;
+    };
+    
     new_vars.add_scope(); //Top scope of the function
     let mut i = 0;
     for _arg in args{     //In the new context the parameter name and the argument values are inserted together
+        if visited[i]{
+            continue;
+        }
         let param_name = get_param_name(&fn_info.params[i]);
         new_vars.insert(&param_name, &values[i]);
         i += 1;
     }
     let mut ret = Ok(Value::NoValue);
-    let mut j = 0;
     for instr in &fn_info.instructions{
         let _x = interpret(instr, &mut new_vars, funcs); 
         match &**instr{
             Node::Return(_o) => ret = interpret(instr, &mut new_vars, funcs),
             Node::BlockValue(_v) => ret = interpret(instr, &mut new_vars, funcs),
-            Node::IfElse(_a, _b, _c) => if j == fn_info.instructions.len()-1 {
-                ret = interpret(instr, &mut new_vars, funcs);
-            },
                 _ => (),
         }
-        j += 1;
     }
     return ret; //should return the actual returned value of the call
 }
@@ -404,7 +441,7 @@ pub fn interpret_let(id: &String, value: &Option<Box<Node>>, vars: &mut VarConte
         _ => false,
     };
     if create_ref{
-        create_reference(id, &value.as_ref().unwrap(), vars, funcs);
+        create_reference(id, &value.as_ref().unwrap(), vars);
         return Ok(Value::NoValue);
     }
     vars.insert(id, &val.unwrap());
@@ -419,19 +456,14 @@ pub fn interpret_assign(id: &String, value: &Node, vars: &mut VarContext, funcs:
         _ => false,
     };
     if create_ref{
-        create_reference(id, value, vars, funcs);
+        create_reference(id, value, vars);
         return Ok(Value::NoValue);
     }
-    //vars.insert(id, &val.unwrap());
-    //println!("AFTER INSERT");
-    //println!("{:?}", vars.get(id));
     vars.remove_mut_borrow(id);
-    //println!("AFTER REMOVE MUT BORROW");
-    //println!("{:?}", vars.get(id));
     return Ok(Value::NoValue);
 }
 
-fn create_reference(id: &String, node: &Node, vars: &mut VarContext, funcs: &mut FnContext){
+fn create_reference(id: &String, node: &Node, vars: &mut VarContext){
     let op = match node{
         Node::UnaryOp(o, _n) => o,
         _ => panic!("unreachable"),

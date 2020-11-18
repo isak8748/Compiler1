@@ -156,7 +156,6 @@ Instruction: Box<Node> = {
 };
 
 pub TypeSpec: String = {
-    //":" <name:Id> => String::from_str(&name).unwrap(),
     ": i32" => String::from_str(<>).unwrap(),
     ": bool" => String::from_str(<>).unwrap(),
     ": &i32" => String::from_str(<>).unwrap(),
