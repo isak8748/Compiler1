@@ -272,6 +272,8 @@ This function would not be accepted by the grammar.
 
 Constants:
 
+<img src="https://render.githubusercontent.com/render/math?math=\frac{}{<n, σ> -> n}">
+
 ```math
 \frac{}{<n, σ> -> n}
 ```

@@ -32,5 +32,6 @@ fn fact(i: i32) -> i32{
 }
 
 fn main() -> i32{
+	let x = 13;
 	return fact(5);
 }

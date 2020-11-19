@@ -652,6 +652,13 @@ pub fn type_check_unary_op(node: &Node, operation: &Opcode, context: &mut Contex
         }
 
         if mutable {
+            let id_name = match node{
+                Node::ID(s) => s,
+                _ => panic!("unreachable"),
+            };
+            if !context.get(id_name).unwrap().mutable{
+                panic!("cannot borrow {:?} as mutable since it is not declared as mutable", id_name);
+            }
             return Ok(Types::MutRef(Box::new(expr_type.unwrap())));
         }
 

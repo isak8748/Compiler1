@@ -188,7 +188,7 @@ fn test_parse() {
     assert!(type_check(&WhileParser::new().parse("while true {let A = true; let c = &A}").unwrap(), &mut c, &mut funcs).is_ok());
     assert!(type_check(&WhileParser::new().parse("while true {let A = true; let c = *A}").unwrap(), &mut c, &mut funcs).is_err());
     assert!(type_check(&WhileParser::new().parse("while true {let A = true; let c = &A; let b = *c}").unwrap(), &mut c, &mut funcs).is_ok());
-    assert!(type_check(&WhileParser::new().parse("while true {let A = true; let c = &mut A; let b = *c}").unwrap(), &mut c, &mut funcs).is_ok());
+    assert!(type_check(&WhileParser::new().parse("while true {let mut A = true; let c = &mut A; let b = *c}").unwrap(), &mut c, &mut funcs).is_ok());
     assert!(type_check(&WhileParser::new().parse("while true {let A = true; let c = &A; let b = *c}").unwrap(), &mut c, &mut funcs).is_ok());
     assert!(type_check(&WhileParser::new().parse("while true {let A: i32 = 5; let c: &i32 = &A; let b = *c}").unwrap(), &mut c, &mut funcs).is_ok());
     println!("@@@@@@@@@@@@@@@@@@@@@@@@@");
@@ -200,7 +200,7 @@ fn test_parse() {
         a
     }").unwrap(), &mut c, &mut funcs).is_ok());
     assert!(type_check(&FunctionParser::new().parse("fib(a: bool, d: bool) -> i32 {
-        let x = 5;
+        let mut x = 5;
         let y = &mut x;
         *y = 18;
         return x

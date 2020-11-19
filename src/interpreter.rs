@@ -245,7 +245,7 @@ pub fn interpret_program(functions: &Vec<Box<Node>>) -> Result<Value, &'static s
     let mut vars = VarContext{var_env: a_var_env}; //Setting up an empty context
     let v = Vec::new();
     let s: String = "main".to_string();
-    let x = interpret_call(&s, &v, &mut funcs, &mut vars);
+    let x = interpret_call_wrapper(&s, &v, &mut funcs, &mut vars);
     return x;
 }
 
@@ -263,8 +263,15 @@ fn get_param_name(node: &Node) -> String{
     return s.clone();
 }
 
+//Change map will map mutable references in a call to updated values. These will be updated in the callers context.
+fn interpret_call_wrapper(func_name: &String, args: &Vec<Box<Node>>, funcs: &mut FnContext, vars: &mut VarContext) -> Result<Value, &'static str>{
+    let mut change_map: HashMap<String, Value> = HashMap::new();
+    let result = interpret_call(func_name, args, funcs, vars, &mut change_map);
+    return result;
+}
 
-pub fn interpret_call(func_name: &String, args: &Vec<Box<Node>>, funcs: &mut FnContext, vars: &mut VarContext) 
+
+pub fn interpret_call(func_name: &String, args: &Vec<Box<Node>>, funcs: &mut FnContext, vars: &mut VarContext, change_map: &mut HashMap<String, Value>) 
     -> Result<Value, &'static str>{
     let mut values = Vec::new();
     for arg in args{
@@ -585,7 +592,7 @@ pub fn interpret(node: &Node, vars: &mut VarContext, funcs: &mut FnContext) -> R
         Node::IfElse(n, v1, v2) => interpret_if_else(n, v1, v2, vars, funcs),
         Node::BlockValue(a) => interpret(a, vars, funcs),
         Node::Return(o) => interpret_return(o, vars, funcs),
-        Node::Call(s, v) => interpret_call(s, v, funcs, vars),
+        Node::Call(s, v) => interpret_call_wrapper(s, v, funcs, vars),
         Node::WriteByRef(_o, s, v) => interpret_write_ref(s, v, vars, funcs),
         Node::Program(v) => interpret_program(v),
         _ => panic!("err"), 
