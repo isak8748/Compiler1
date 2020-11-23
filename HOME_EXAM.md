@@ -246,24 +246,17 @@ Arithmetic operations:
 <img src="https://render.githubusercontent.com/render/math?math=\frac{<a1, \sigma> \Downarrow n1 <a2, \sigma> \Downarrow n2}{<n1 \oplus n2, \sigma> \Downarrow n}">
 
 It is similar for the boolean operations. For comparison operators the result will always be a boolean value. All boolean operations can be used on numbers and 2 of them on booleans.
-
-Sub-expressions:
-```math
-\frac{<a1, σ> -> a1'}{<a1 ⊕ a2, σ> -> <a1' ⊕ a2, σ>}
-```
 Parentheses can be used to create sub expressions. Otherwise operator precedence determines the order sub expressions are evaluated.
 
 Assignment:
-```math
-\frac{<a1, σ> -> a1'}{<x := n, σ> -> <skip, σ[x->n]>}
-```
+
+<img src="https://render.githubusercontent.com/render/math?math=\frac{<a, \sigma> \Downarrow n}{<x := n, \sigma> \Downarrow \sigma [x -> n]}">
+
 σ[x->n] is the updated variable environment. Declaration of variables work similarly. If an old variable with the same name exists it will be replaced.
 
 Sequence:
 
-```math
-\frac{<c0, σ> -> <c0', σ'>}{<c0;c1, σ> -> <c0';c1, σ'>}
-```
+<img src="https://render.githubusercontent.com/render/math?math=\frac{<c0, \sigma> \Downarrow \sigma ' <c1, \sigma '> \Downarrow \sigma ''}{<c0;c1, \sigma> \Downarrow \sigma '' }">
 
 If/else:
 ```math
