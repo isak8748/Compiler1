@@ -278,7 +278,7 @@ The arguments can be any form of epression which is evaluated to a value. These 
 
 Function calls:
 
-\frac{<f(a_1, a_2...a_n), \sigma> \Downarrow r}{<f(a_1, a_2...a_n), \sigma> \Downarrow \sigma'}
+<img src="https://render.githubusercontent.com/render/math?math=\frac{<f(a_1, a_2...a_n), \sigma> \Downarrow r}{<f(a_1, a_2...a_n), \sigma> \Downarrow \sigma'}">
 
 Function calls can evaluate to a value. They also can change the state of the program after a call is evaluated.
 
