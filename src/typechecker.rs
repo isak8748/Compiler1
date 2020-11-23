@@ -200,12 +200,10 @@ pub fn type_check_fn_def(id: &String, params: &Vec<Box<Node>>, rtype: &Option<St
                 Node::ParamDef(_, t) => type_check_param_def(t).unwrap(),
                 _ => panic!("invalid param"),
             };
-            println!("{:?}", name);
             context.insert(name, &typ, &true);
 
         }
-        println!("{:?}", context.var_env);
-
+        
         let ret_type: Types;
         if rtype.is_none() {
             ret_type = Types::UnitType;

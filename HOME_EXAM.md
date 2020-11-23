@@ -18,7 +18,7 @@ Program:
 Function:
 
 ```
-: Id "(" Params ","* ")" ("->" Id) "{" Body "}"
+: Id "(" Params ")" ("->" Id) "{" Body "}"
 ;
 ```
 
@@ -134,40 +134,15 @@ UnaryOp:
 Instruction:
 ```
 :BoolExp
-|Declaration
-|Stmt
-|If
-|IfElse
-|While
-|Return
-|WriteByReference
+|"let" ["mut"] Id [TypeSpec] ["=" Instruction]
+|Id "=" Instruction
+|"if" BoolExp "{" Body "}" ["else" "{" Body "}"]
+|"while" BoolExp "{" Body "}"
+|"return" [BoolExp]
+|UnaryOp Id "=" Instruction
 ;
 ```
 
-Return:
-```
-:"return" [BoolExp]
-;
-```
-
-Stmt:
-```
-:Id "=" Instruction
-;
-```
-
-Declaration:
-```
-:"let" "mut" Id [TypeSpec] ["=" Instruction]
-|"let" Id [TypeSpec] ["=" Instruction]
-;
-```
-
-WriteByReference:
-```
-:UnaryOp Id "=" Instruction
-;
-```
 
 FunctionCall:
 ```
@@ -181,23 +156,6 @@ Arguments:
 ;
 ```
 
-If:
-```
-:"if" BoolExp "{" Body "}"
-;
-```
-
-IfElse
-```
-:"if" BoolExp "{" Body "}" "else" "{" Body "}"
-;
-```
-
-While:
-```
-:"while" BoolExp "{" Body "}"
-;
-```
 
 TypeSpec:
 ```
@@ -278,13 +236,14 @@ Constants:
 Same for booleans
 
 Variables:
-```math
-\frac{}{<x, σ> -> σ(x)}
-```
+
+<img src="https://render.githubusercontent.com/render/math?math=\frac{}{<x, \sigma> -> \sigma(x)}">
+
+
 
 Arithmetic operations:
 ```math
-\frac{}{<n1 ⊕ n2, σ> -> n3}
+\frac{<a1, \sigma> \Downarrow n1 <a2, \sigma> \Downarrow n2}{<n1 ⊕ n2, σ> \Downarrow n}
 ```
 It is similar for the boolean operations. For comparison operators the result will always be a boolean value. All boolean operations can be used on numbers and 2 of them on booleans.
 

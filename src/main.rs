@@ -15,12 +15,6 @@ use std::{env, fs};
 
 
 fn main(){
-    println!("{}", ExprOpParser::new().parse("+").unwrap());
-    println!("{}", ExprParser::new().parse("5+6*7").unwrap());
-    println!("{}", ExprParser::new().parse("22 * 44 + 66").unwrap());
-    println!("{}", ExprParser::new().parse("22 + 44 * 66").unwrap());
-    println!("{}", StmtParser::new().parse("x = 7").unwrap());
-    println!("{:?}", StmtParser::new().parse("num = 567/14+56-14",).unwrap());
     test_parse();
     test_types();
     test_interp();
@@ -34,13 +28,20 @@ fn main(){
     dir.push("mut_borrow_test.txt");
     let s = fs::read_to_string(dir).unwrap();
     let parse = ProgramParser::new().parse(&s);
-    assert!(parse.is_ok());
+    if parse.is_err(){
+        println!("Parsing of the input program failed");
+        return;
+    }
     let mut c = init_context();
     let mut f = init_funcs();
-    println!("type_check: {:?}", type_check(&parse.clone().unwrap(), &mut c, &mut f));
-    let mut c = interp_context();
-    let mut f = interp_fn_context();
-    println!("interpreter: {:?}", interpret(&parse.unwrap(), &mut c, &mut f));
+    let type_check_result = type_check(&parse.clone().unwrap(), &mut c, &mut f);
+    println!("type_checker result: {:?}", type_check_result);
+
+    if type_check_result.is_ok(){
+        let mut c = interp_context();
+        let mut f = interp_fn_context();
+        println!("interpreter result: {:?}", interpret(&parse.unwrap(), &mut c, &mut f));
+    }
 
 
 }
@@ -92,7 +93,7 @@ fn test_parse() {
         c 
     }").is_ok());
     assert!(BoolExpParser::new().parse("true && false").is_ok());
-    println!("{:?}", BoolExpParser::new().parse("true && false").unwrap());
+    /*println!("{:?}", BoolExpParser::new().parse("true && false").unwrap());
     println!("{:?}", BoolExpParser::new().parse("D == false && 14 < 17 || A <= B").unwrap());
     println!("{:?}", DeclarationParser::new().parse("let x: i32 = fib(13, 5)").unwrap());
     println!("{:?}", IfParser::new().parse("if x {let a = 5; let b = 3; a + 5}").unwrap());
@@ -118,7 +119,7 @@ fn test_parse() {
     }    
     
     "
-    ));
+    ));*/
     assert!(ProgramParser::new().parse("fn c(x: bool, y: bool) -> i32 {
         let mut b: i32 = 0;
         let mut c: i32 = 1;
@@ -166,9 +167,6 @@ fn test_parse() {
     assert!(type_check(&WhileParser::new().parse("while D && 13 <= A || 456 != B {let x = 5}").unwrap(), &mut c, &mut funcs).is_ok());
     assert!(type_check(&WhileParser::new().parse("while A % 4 + true {let x = 5}").unwrap(), &mut c, &mut funcs).is_err());
     assert!(type_check(&WhileParser::new().parse("while A % 4 * 32 {let x = 5}").unwrap(), &mut c, &mut funcs).is_err());
-    println!("{:?}", type_check(&IfParser::new().parse("if true { let x = 5; 1234 * 12}").unwrap(), &mut c, &mut funcs));
-    println!("{:?}", type_check(&IfParser::new().parse("if true { let x = 5; let a = 7;}").unwrap(), &mut c, &mut funcs));
-    println!("{:?}", type_check(&IfElseParser::new().parse("if true{5} else {6}").unwrap(), &mut c, &mut funcs));
     assert!(type_check(&IfElseParser::new().parse("if true{5} else {6}").unwrap(), &mut c, &mut funcs).is_ok());
     assert!(type_check(&IfElseParser::new().parse("if false {13} else {true}").unwrap(), &mut c, &mut funcs).is_err());
     assert!(type_check(&IfElseParser::new().parse("if D || true {let x = 3; 14 %3} else {let x = 3; 67-1}").unwrap(), &mut c, &mut funcs).is_ok());
@@ -191,7 +189,6 @@ fn test_parse() {
     assert!(type_check(&WhileParser::new().parse("while true {let mut A = true; let c = &mut A; let b = *c}").unwrap(), &mut c, &mut funcs).is_ok());
     assert!(type_check(&WhileParser::new().parse("while true {let A = true; let c = &A; let b = *c}").unwrap(), &mut c, &mut funcs).is_ok());
     assert!(type_check(&WhileParser::new().parse("while true {let A: i32 = 5; let c: &i32 = &A; let b = *c}").unwrap(), &mut c, &mut funcs).is_ok());
-    println!("@@@@@@@@@@@@@@@@@@@@@@@@@");
     assert!(type_check(&FunctionParser::new().parse("fib(a: bool, d: bool) -> i32 {
         let x = 1+4;
         let y = true || false;
@@ -207,20 +204,7 @@ fn test_parse() {
     }").unwrap(), &mut c, &mut funcs).is_ok());
     assert!(type_check(&WhileParser::new().parse("while false{let a: bool = true <= false}").unwrap(), &mut c, &mut funcs).is_err());
     assert!(type_check(&WhileParser::new().parse("while false{let a: bool = 5 && 6}").unwrap(), &mut c, &mut funcs).is_err());
-    assert!(type_check(&WhileParser::new().parse("while false{let a: bool = false; let a = &5}").unwrap(), &mut c, &mut funcs).is_err());
-    println!("QQQQQQQQQQQQQQQQQQQQQQQQQQQ");
-    println!("{:?}", type_check(&ProgramParser::new().parse("fn fib(x: i32) -> i32{
-        let x = 2;
-        return 4 + x;
-    }
-    fn main(){
-        let mut y = true;
-        while true{
-            y = false
-        };
-        fib(2345);
-    }
-    ").unwrap(), &mut c, &mut funcs));    
+    assert!(type_check(&WhileParser::new().parse("while false{let a: bool = false; let a = &5}").unwrap(), &mut c, &mut funcs).is_err());   
     assert!(type_check(&ProgramParser::new().parse("fn factorial(x: i32) -> i32{
         let mut ret: i32 = 0;
         if x <= 1 {
@@ -255,20 +239,14 @@ fn test_parse() {
     }
 
     ").unwrap(), &mut c, &mut funcs).is_ok());
-    println!("passed");
-
   }
 
   fn test_interp(){
       let mut c = interp_context();
       let mut funcs = interp_fn_context();
       assert!(interpret(&BoolExpParser::new().parse("1+2").unwrap(), &mut c, &mut funcs).is_ok());
-      println!("{:?}", interpret(&BoolExpParser::new().parse("1+2").unwrap(), &mut c, &mut funcs));
       assert!(interpret(&BoolExpParser::new().parse("true == false").unwrap(), &mut c, &mut funcs).is_ok());
-      println!("{:?}", interpret(&BoolExpParser::new().parse("true == false").unwrap(), &mut c, &mut funcs));
       assert!(interpret(&BoolExpParser::new().parse("23 % 4 < 345 || 15-3 == 34").unwrap(), &mut c, &mut funcs).is_ok());
-      println!("{:?}", interpret(&BoolExpParser::new().parse("23 % 4 < 345 || 15-3 == 34").unwrap(), &mut c, &mut funcs));
-      println!("{:?}", interpret(&BoolExpParser::new().parse("24 + -6").unwrap(), &mut c, &mut funcs));
       assert!(interpret(&DeclarationParser::new().parse("let a = 0").unwrap(), &mut c, &mut funcs).is_ok());
       let _d = interpret(&IfParser::new().parse("if true {
         let a = 2;
@@ -280,14 +258,14 @@ fn test_parse() {
         a = 6;
         let d = *y;
     }").unwrap(), &mut c, &mut funcs);
-    println!(" ok? {:?}", _d);
+    /*println!(" ok? {:?}", _d);
       let _v = interpret(&IfParser::new().parse("if 4 < 5 {
         let a = 0;
         let b = &a;
         while a < 10{
             a = a + 1;
         };
-    }").unwrap(), &mut c, &mut funcs);
+    }").unwrap(), &mut c, &mut funcs);*/
     
       
   }

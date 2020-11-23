@@ -268,7 +268,6 @@ fn get_param_name(node: &Node) -> String{
 fn interpret_call_wrapper(func_name: &String, args: &Vec<Box<Node>>, funcs: &mut FnContext, vars: &mut VarContext) -> Result<Value, &'static str>{
     let mut change_map: HashMap<String, Value> = HashMap::new();
     let result = interpret_call(func_name, args, funcs, vars, &mut change_map);
-    println!("change map: {:?}", change_map);
     let fn_info = funcs.fn_env.get_mut(func_name).unwrap().clone();
     let mut i = 0;
     for param in &fn_info.params{
@@ -376,14 +375,9 @@ pub fn interpret_call(func_name: &String, args: &Vec<Box<Node>>, funcs: &mut FnC
 
             let mut b_name = id.clone(); //b_name is the id of the variable which the mut ref is pointing to
             b_name.push_str("@DATA");
-
-            println!("b_name is {:?}", b_name);
-            println!("id name is {:?}", id);
             new_vars.insert(&b_name.clone(), &val); //This should be changed to something which cant be overwritten
 
             new_vars.insert_borrow(&id, &b_name, mut_ref);
-            println!("b_name var info {:?}", new_vars.get(&b_name));
-            println!("id var info {:?}", new_vars.get(&id));
 
         }
         i += 1;
@@ -486,17 +480,11 @@ pub fn interpret_unary_op(operation: &Opcode, node: &Node, vars: &mut VarContext
             _ => panic!("should be unreachable"),
         };
 
-        println!("-----------------------------");
         let var_info = vars.get(s);
-        println!("{:?}", var_info.clone());
         let id = var_info.unwrap().borrow_of;
-        println!("{:?}", id);
         let value_info = vars.get(&id.clone().unwrap()).unwrap();
-        println!("{:?}", value_info);
         let mut non_mut_found = false;
         for brw in value_info.borrows{                 //Check all other borrows 
-            println!("{:?}", brw.name);
-            println!("{:?}", *s);
             if brw.mutable && brw.name != *s{        //If another reference exists which is mutable
                 panic!("Mutable reference and another reference exists");
             }
@@ -577,8 +565,6 @@ fn create_reference(id: &String, node: &Node, vars: &mut VarContext){
         Node::ID(s) => s,
         _ => panic!("unreachable"),
     };
-    println!("{:?}", id);
-    println!("{:?}", ref_name);
     vars.insert_borrow(id, &ref_name, is_mut);
 
 }

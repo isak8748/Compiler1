@@ -5,7 +5,8 @@ fn fib(a: &mut i32, z: &i32){
 fn main() -> i32{
 	let mut x = 17;
 	let b = &mut x;
-	let q = &x;
+	let y = 13;
+	let q = &y;
 	fib(b, q);
 	return x;
 }
