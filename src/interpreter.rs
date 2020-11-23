@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::collections::VecDeque;
+use std::collections::HashSet;
 use crate::ast::Node;
 use crate::ast::Opcode;
 
@@ -267,6 +268,52 @@ fn get_param_name(node: &Node) -> String{
 fn interpret_call_wrapper(func_name: &String, args: &Vec<Box<Node>>, funcs: &mut FnContext, vars: &mut VarContext) -> Result<Value, &'static str>{
     let mut change_map: HashMap<String, Value> = HashMap::new();
     let result = interpret_call(func_name, args, funcs, vars, &mut change_map);
+    println!("change map: {:?}", change_map);
+    let fn_info = funcs.fn_env.get_mut(func_name).unwrap().clone();
+    let mut i = 0;
+    for param in &fn_info.params{
+        let mut_ref;
+        let type_spec = match &**param{
+            Node::ParamDef(_, t) => t,
+            _ => panic!("params only"),
+        };
+
+        let id = match &**param{
+            Node::ParamDef(n, _) => n,
+            _ => panic!("params only"),
+        };
+
+        match type_spec as &str{
+            ": &mut i32" => mut_ref = true,
+            ": &mut bool" => mut_ref = true,
+            _ => mut_ref = false,
+        };
+
+        if mut_ref{
+            let new_value = change_map.get(id).unwrap();
+            let name_of_borrow_box = args[i].clone();
+            let name_of_borrow = match *name_of_borrow_box{
+                Node::ID(s) => s,
+                _ => panic!("reference arguments need to be identifiers"),
+            };
+
+            let borrow_var_info = vars.get(&name_of_borrow).unwrap();
+            let name_of_identifier = borrow_var_info.borrow_of.unwrap();
+            let identifier_info = vars.get(&name_of_identifier).unwrap();
+            if name_of_borrow != identifier_info.borrows[0].name{
+                panic!("mutable reference and non mutable references exist");
+            }
+
+            let value_node = match new_value{
+                Value::Number(n) => Node::Number(*n),
+                Value::Boolean(b) => Node::Boolean(*b),
+                _ => panic!("not a valid value"),
+            };
+            let write = Node::WriteByRef(Opcode::DeRef, name_of_borrow, Box::new(value_node));
+            let _res = interpret(&write, vars, funcs); //Updating the value as modified by the call
+        }
+        i += 1;
+    }
     return result;
 }
 
@@ -286,6 +333,7 @@ pub fn interpret_call(func_name: &String, args: &Vec<Box<Node>>, funcs: &mut FnC
 
     let mut visited = vec![false; args.len()];
     let mut i = 0;
+    let mut mut_refs = HashSet::new();
     for param in &fn_info.params{
         let mut mut_ref = false;
         let mut non_mut_ref = false;
@@ -313,13 +361,30 @@ pub fn interpret_call(func_name: &String, args: &Vec<Box<Node>>, funcs: &mut FnC
             let val = interpret(&n, vars, funcs).unwrap();
 
 
-            let b_name = match *args[i].clone(){
+            let arg_name = match *args[i].clone(){
                 Node::ID(s) => s,
                 _ => panic!("unimplemented"),
             };
-            new_vars.insert(&b_name.clone(), &val); //This should be changes to something which cant be overwritten
+
+            if mut_ref && mut_refs.contains(&arg_name){
+                panic!("Can not have multiple mutable references to the same id as arguments");
+            }
+            else{
+                mut_refs.insert(arg_name);
+            }
+
+
+            let mut b_name = id.clone(); //b_name is the id of the variable which the mut ref is pointing to
+            b_name.push_str("@DATA");
+
+            println!("b_name is {:?}", b_name);
+            println!("id name is {:?}", id);
+            new_vars.insert(&b_name.clone(), &val); //This should be changed to something which cant be overwritten
 
             new_vars.insert_borrow(&id, &b_name, mut_ref);
+            println!("b_name var info {:?}", new_vars.get(&b_name));
+            println!("id var info {:?}", new_vars.get(&id));
+
         }
         i += 1;
     };
@@ -343,6 +408,34 @@ pub fn interpret_call(func_name: &String, args: &Vec<Box<Node>>, funcs: &mut FnC
                 _ => (),
         }
     }
+    //Now the change_map needs to be updated
+    for param in &fn_info.params{
+        let mut_ref;
+        let type_spec = match &**param{
+            Node::ParamDef(_, t) => t,
+            _ => panic!("params only"),
+        };
+
+        let id = match &**param{
+            Node::ParamDef(n, _) => n,
+            _ => panic!("params only"),
+        };
+
+        match type_spec as &str{
+            ": &mut i32" => mut_ref = true,
+            ": &mut bool" => mut_ref = true,
+            _ => mut_ref = false,
+        };
+
+        if mut_ref{
+            let o = Opcode::DeRef;
+            let borrow_name = Node::ID(id.clone());
+            let n = Node::UnaryOp(o, Box::new(borrow_name));
+            let val = interpret(&n, &mut new_vars, funcs).unwrap(); //Dereference the mut_ref in current context to get the value
+            change_map.insert(id.clone(), val);
+        }
+    }
+
     return ret; //should return the actual returned value of the call
 }
 

@@ -274,9 +274,7 @@ Constants:
 
 <img src="https://render.githubusercontent.com/render/math?math=\frac{}{<n, \sigma> -> n}">
 
-```math
-\frac{}{<n, σ> -> n}
-```
+
 Same for booleans
 
 Variables:

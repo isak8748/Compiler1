@@ -1,0 +1,11 @@
+fn fib(a: &mut i32, z: &i32){
+	*a = 5;
+}
+
+fn main() -> i32{
+	let mut x = 17;
+	let b = &mut x;
+	let q = &x;
+	fib(b, q);
+	return x;
+}
