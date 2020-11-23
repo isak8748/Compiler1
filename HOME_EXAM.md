@@ -280,7 +280,7 @@ Function calls:
 
 <img src="https://render.githubusercontent.com/render/math?math=\frac{<f(a_1, a_2...a_n), \sigma> \Downarrow r}{<f(a_1, a_2...a_n), \sigma> \Downarrow \sigma'}">
 
-Function calls can evaluate to a value. They also can change the state of the program after a call is evaluated.
+Function calls can evaluate to a value based on the returned type (Unit type has no value). They also can change the state of the program after a call is evaluated.
 
 After the argument values are bound to the parameter names the call will execute as a sequence described above. The store σ may be modified.
 
@@ -473,7 +473,7 @@ let x = *b;
 ```
 Here b will be unreachable as there would otherwise be both a mutable and non-mutable reference to a in a block of code.
 
-The purpose of the borrow checker is to eliminate data races. 
+The purpose of the borrow checker is to eliminate data races. Rusts borrow checker also guarantees no dangling pointers can exist. These are a very common cause of bugs which are simply impossible writing rust code unless it is written in "unsafe".
 
 
 ## Overall course goals and learning outcomes.
