@@ -256,7 +256,7 @@ Assignment:
 
 Sequence:
 
-<img src="https://render.githubusercontent.com/render/math?math=\frac{<c0, \sigma> \Downarrow \sigma' <c1, \sigma'> \Downarrow \sigma''}{<c0 c1, \sigma> \Downarrow \sigma''}">
+<img src="https://render.githubusercontent.com/render/math?math=\frac{<c0, \sigma> \Downarrow \sigma' <c1, \sigma'> \Downarrow \sigma''}{<c0%3Bc1, \sigma> \Downarrow \sigma''}">
 
 If/else:
 ```math
