@@ -271,14 +271,18 @@ While:
 
 Arguments:
 
-<img src="https://render.githubusercontent.com/render/math?math=\frac{<e_1, \sigma> \Downarrow a_1 <e_2, \sigma> \Downarrow a_2 ... <e_n, \sigma> \Downarrow a_n}{<p_1 := e_1, p_2 := e_2...p_n:= e_n \sigma> \Downarrow \sigma[p_1 -> a_1, p_2 -> a_2... p_n -> a_n]}">
+<img src="https://render.githubusercontent.com/render/math?math=\frac{<e_1, \sigma> \Downarrow a_1 <e_2, \sigma> \Downarrow a_2 ... <e_n, \sigma> \Downarrow a_n}{<p_1 := e_1, p_2 := e_2...p_n:= e_n, \sigma> \Downarrow \sigma[p_1 -> a_1, p_2 -> a_2... p_n -> a_n]}">
 
-\frac{<e_1, \sigma> \Downarrow a_1 <e_2, \sigma> \Downarrow a_2 ... <e_n, \sigma> \Downarrow a_n}{<p_1 := e_1, p_2 := e_2...p_n:= e_n \sigma> \Downarrow \sigma[p_1 -> a_1, p_2 -> a_2... p_n -> a_n]}
 
 The arguments can be any form of epression which is evaluated to a value. These values are then assigned to the parameters.
 
 Function calls:
 
+\frac{<f(a_1, a_2...a_n), \sigma> \Downarrow r}{<f(a_1, a_2...a_n), \sigma> \Downarrow \sigma'}
+
+Function calls can evaluate to a value. They also can change the state of the program after a call is evaluated.
+
+After the argument values are bound to the parameter names the call will execute as a sequence described above. The store σ may be modified.
 
 
 
