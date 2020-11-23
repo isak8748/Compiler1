@@ -18,7 +18,7 @@ Program:
 Function:
 
 ```
-: Id "(" Params ")" ("->" Id) "{" Body "}"
+: Id "(" Params ")" ["->" Id] "{" Body "}"
 ;
 ```
 
@@ -269,6 +269,10 @@ While:
 
 <img src="https://render.githubusercontent.com/render/math?math=\frac{<b, \sigma> \Downarrow true <c, \sigma> \Downarrow \sigma' <while b do c, \sigma'> \Downarrow \sigma''}{<while b do c, \sigma> \Downarrow \sigma'' }">
 
+Arguments:
+
+\frac{<e_1, \sigma> \Downarrow a_1 <e_2, \sigma> \Downarrow a_2 ... <e_n, \sigma> \Downarrow a_n}{}
+
 
 
 
@@ -456,6 +460,8 @@ let c = &a;
 let x = *b;
 ```
 Here b will be unreachable as there would otherwise be both a mutable and non-mutable reference to a in a block of code.
+
+The purpose of the borrow checker is to eliminate data races. 
 
 
 ## Overall course goals and learning outcomes.
