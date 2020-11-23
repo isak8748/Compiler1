@@ -243,7 +243,7 @@ Variables:
 
 Arithmetic operations:
 
-<img src="https://render.githubusercontent.com/render/math?math=\frac{<a1, \sigma> \Downarrow n1 <a2, \sigma> \Downarrow n2}{<n1 x n2, σ> \Downarrow n}">
+<img src="https://render.githubusercontent.com/render/math?math=\frac{<a1, \sigma> \Downarrow n1 <a2, \sigma> \Downarrow n2}{<n1 \XOR n2, \sigma> \Downarrow n}">
 
 It is similar for the boolean operations. For comparison operators the result will always be a boolean value. All boolean operations can be used on numbers and 2 of them on booleans.
 
