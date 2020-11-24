@@ -296,11 +296,9 @@ After the argument values are bound to the parameter names the call will execute
 ## Your type checker
 
 
-Arithmetic operations:
+Arithmetic and logical operations:
 
-<img src="https://render.githubusercontent.com/render/math?math=\frac{}{<i32 \oplus i32, \sigma> -> i32}">
-
-For logical operations i32 is replaced with boolean. For comparisons the result is boolean and the operands can be either boolean or i32 (depending on the operation). The typechecker will make sure the operands are the correct type.
+The result of arithmetic operations between two numbers is a number. Boolean operations require both sides to be boolean and return a boolean result. For comparisons the result is boolean and the operands can be either boolean or i32 (depending on the operation). The typechecker will make sure the operands are the correct type.
 
 Correct operation expressions:
 ```rust
