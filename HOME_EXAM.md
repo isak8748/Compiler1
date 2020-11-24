@@ -267,7 +267,7 @@ Where x is true or false. The condition will eventually evaluate to true or fals
 
 While:
 
-<img src="https://render.githubusercontent.com/render/math?math=\frac{<b, \sigma> \Downarrow true <c, \sigma> \Downarrow \sigma' <while b do c, \sigma'> \Downarrow \sigma''}{<while b do c, \sigma> \Downarrow \sigma'' }">
+<img src="https://render.githubusercontent.com/render/math?math=\frac{<b, \sigma> \Downarrow true <c, \sigma> \Downarrow \sigma' <while \: b do \:c, \sigma'> \Downarrow \sigma''}{<while b do c, \sigma> \Downarrow \sigma'' }">
 
 Arguments:
 
