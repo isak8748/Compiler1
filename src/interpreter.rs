@@ -375,7 +375,7 @@ pub fn interpret_call(func_name: &String, args: &Vec<Box<Node>>, funcs: &mut FnC
 
             let mut b_name = id.clone(); //b_name is the id of the variable which the mut ref is pointing to
             b_name.push_str("@DATA");
-            new_vars.insert(&b_name.clone(), &val); //This should be changed to something which cant be overwritten
+            new_vars.insert(&b_name.clone(), &val);
 
             new_vars.insert_borrow(&id, &b_name, mut_ref);
 
@@ -433,7 +433,6 @@ pub fn interpret_call(func_name: &String, args: &Vec<Box<Node>>, funcs: &mut FnC
     return ret; //should return the actual returned value of the call
 }
 
-//add suppport for all unary operations
 pub fn interpret_unary_op(operation: &Opcode, node: &Node, vars: &mut VarContext, funcs: &mut FnContext) -> Result<Value, &'static str>{
     let value = interpret(node, vars, funcs);
     let number = match operation{
