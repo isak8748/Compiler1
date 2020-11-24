@@ -1,12 +1,13 @@
-fn fib(a: &mut i32, z: &i32){
+fn fib(bb: i32, a: &mut i32, z: &mut i32){
 	*a = 5;
 }
 
 fn main() -> i32{
 	let mut x = 17;
-	let b = &mut x;
-	let y = 13;
+	let v = &mut x;
+	let mut y = 13;
 	let q = &y;
-	fib(b, q);
+	let dd = &mut y;
+	fib(12 + 123, v, v);
 	return x;
 }

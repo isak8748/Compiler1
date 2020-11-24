@@ -12,11 +12,12 @@ fn math(x: i32, y: i32) -> bool{
 }
 
 fn foo(b: bool, c: bool) -> bool{
-    let a = &mut b;
+    let a = &b;
+    let mut y = false;
     if *a && c{
-        *a = false;
+        y = true;
     };
-    return *a;
+    return y;
 }
 
 fn main() -> i32{

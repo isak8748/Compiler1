@@ -186,11 +186,12 @@ fn math(x: i32, y: i32) -> bool{
 }
 
 fn foo(b: bool, c: bool) -> bool{
-    let a = &mut b;
+    let a = &b;
+    let mut y = false;
     if *a && c{
-        *a = false;
+        y = true;
     };
-    return *a;
+    return y;
 }
 
 fn main() -> i32{
@@ -296,9 +297,9 @@ After the argument values are bound to the parameter names the call will execute
 
 
 Arithmetic operations:
-```math
-\frac{}{<i32 ⊕ i32, σ> -> i32}
-```
+
+<img src="https://render.githubusercontent.com/render/math?math=\frac{}{<i32 \oplus i32, \sigma> -> i32}">
+
 For logical operations i32 is replaced with boolean. For comparisons the result is boolean and the operands can be either boolean or i32 (depending on the operation). The typechecker will make sure the operands are the correct type.
 
 Correct operation expressions:
@@ -327,7 +328,7 @@ Unary - requires the operand to be a number, ! requires the operand to be a bool
 Correct program:
 ```rust
 let a: i32 = -5;
-let b: bool = !true;
+let mut b: bool = !true;
 let c = &a;
 let d = &mut b;
 let x = *c;
@@ -446,7 +447,7 @@ let a: i32 = square(5, true);
 Below is an example of well formed borrows:
 
 ```rust
-let a = 2;
+let mut a = 2;
 let b = &a;
 let c = &mut a;
 *c = 10;
@@ -459,7 +460,7 @@ When c is created b is removed. c can be used until either a new borrow is creat
 
 Below is an example of ill formed borrows:
 ```rust
-let a = 2;
+let mut a = 2;
 let b = &mut a;
 a = 13;
 *b = 12;
@@ -468,7 +469,7 @@ Within the block there are two ways to write to the variable a: directly and wit
 
 Another example:
 ```rust
-let a = 2;
+let mut a = 2;
 let b = &mut a;
 let c = &a;
 let x = *b;
